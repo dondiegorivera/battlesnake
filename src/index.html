@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gradient Snake</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #222;
+            font-family: Arial, sans-serif;
+            touch-action: none;
+        }
+        canvas {
+            display: block;
+        }
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        #scoreboard {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            min-width: 150px;
+        }
+        #menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 300px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        select, input {
+            padding: 8px;
+            margin: 5px;
+            border-radius: 5px;
+        }
+        .hidden {
+            display: none;
+        }
+        #serverStatus {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        #roomCode {
+            font-weight: bold;
+            background-color: #444;
+            padding: 5px 8px;
+            border-radius: 3px;
+        }
+        .mode-tab {
+            display: inline-block;
+            padding: 8px 15px;
+            cursor: pointer;
+            background-color: #333;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+        }
+        .mode-tab.active {
+            background-color: #4CAF50;
+        }
+        .mode-content {
+            display: none;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 0 5px 5px 5px;
+            margin-top: -2px;
+        }
+        .mode-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="scoreboard"></div>
+        <div id="serverStatus" class="hidden">
+            <span id="statusText">Offline</span>
+            <div id="roomInfo" class="hidden">
+                Room: <span id="roomCode">XXXX</span>
+            </div>
+        </div>
+        <div id="menu">
+            <h2>Gradient Snake</h2>
+            
+            <div class="mode-selector">
+                <div class="mode-tab active" data-mode="singleplayer">Single Player</div>
+                <div class="mode-tab" data-mode="multiplayer">Multiplayer</div>
+            </div>
+            
+            <div id="singleplayerOptions" class="mode-content active">
+                <div>
+                    <label for="playerName">Your Name:</label>
+                    <input type="text" id="playerName" value="Player">
+                </div>
+                <div>
+                    <label for="aiPlayers">AI Bots:</label>
+                    <select id="aiPlayers">
+                        <option value="0">0</option>
+                        <option value="3" selected>3</option>
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="19">19</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="fieldSize">Field Size:</label>
+                    <select id="fieldSize">
+                        <option value="small">Small</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="large">Large</option>
+                    </select>
+                </div>
+                <button id="startSingleplayer">Start Game</button>
+            </div>
+            
+            <div id="multiplayerOptions" class="mode-content">
+                <div>
+                    <label for="mpPlayerName">Your Name:</label>
+                    <input type="text" id="mpPlayerName" value="Player">
+                </div>
+                <div id="createJoinOptions">
+                    <button id="createRoom">Create Room</button>
+                    <div>- or -</div>
+                    <div>
+                        <input type="text" id="roomCodeInput" placeholder="Room Code">
+                        <button id="joinRoom">Join Room</button>
+                    </div>
+                </div>
+                <div id="waitingRoom" class="hidden">
+                    <h3>Waiting for players...</h3>
+                    <div>Share this code to invite players: <span id="shareRoomCode">XXXX</span></div>
+                    <div id="playersList">
+                        <div>Players (1):</div>
+                        <div id="waitingPlayers"></div>
+                    </div>
+                    <button id="startMultiplayer">Start Game</button>
+                    <button id="leaveRoom">Leave Room</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const CONFIG = {
+            FIELD: {
+                small: { width: 2000, height: 2000 },
+                medium: { width: 4000, height: 4000 },
+                large: { width: 8000, height: 8000 }
+            },
+            SNAKE: {
+                initialLength: 10,
+                segmentSize: 20,
+                speedFactor: 5.00,
+                turnSpeed: 0.15,
+                aiUpdateInterval: 300,
+                aiWanderFactor: 0.2,
+                growthPerFood: 5,
+                aiPersonalities: [
+                    { speedMult: 0.7, turnSpeedMult: 1.4, targetPreference: 'food' },
+                    { speedMult: 1.1, turnSpeedMult: 0.8, targetPreference: 'wander' },
+                    { speedMult: 1.0, turnSpeedMult: 1.0, targetPreference: 'mixed' }
+                ]
+            },
+            FOOD: {
+                count: 100,
+                minSize: 5,
+                maxSize: 15,
+                respawnDelay: 500
+            },
+            CAMERA: {
+                smoothing: 0.1,
+                zoomFactor: 0.8,
+                minZoom: 0.5,
+                maxZoom: 1.5
+            },
+            MULTIPLAYER: {
+                updateInterval: 50,
+                reconnectDelay: 2000,
+                server: 'wss://snake-multiplayer-server.glitch.me',
+                roomCodeLength: 4
+            },
+            COLORS: {
+                grid: '#2a2a2a',
+                border: '#444',
+                foodGlow: 'rgba(255, 255, 255, 0.5)',
+                playerGradientStart: [
+                    '#FF5252', '#FF4081', '#E040FB', '#7C4DFF', 
+                    '#536DFE', '#448AFF', '#40C4FF', '#18FFFF', 
+                    '#64FFDA', '#69F0AE', '#B2FF59', '#EEFF41', 
+                    '#FFFF00', '#FFD740', '#FFAB40', '#FF6E40',
+                    '#FF8A80', '#EA80FC', '#B388FF', '#8C9EFF'
+                ],
+                playerGradientEnd: [
+                    '#D32F2F', '#C2185B', '#7B1FA2', '#512DA8', 
+                    '#303F9F', '#1976D2', '#0288D1', '#0097A7', 
+                    '#00796B', '#388E3C', '#689F38', '#AFB42B', 
+                    '#FBC02D', '#FFA000', '#F57C00', '#E64A19',
+                    '#D50000', '#AA00FF', '#6200EA', '#304FFE'
+                ]
+            }
+        };
+
+        const game = {
+            canvas: document.getElementById('gameCanvas'),
+            ctx: null,
+            width: window.innerWidth,
+            height: window.innerHeight,
+            fieldWidth: 0,
+            fieldHeight: 0,
+            pointerX: 0,
+            pointerY: 0,
+            camera: { x: 0, y: 0, zoom: 1 },
+            players: [],
+            foods: [],
+            grid: { size: 100 },
+            playerIndex: 0,
+            isRunning: false,
+            lastTime: 0,
+            gameMode: 'singleplayer',
+            menuElement: document.getElementById('menu'),
+            scoreboardElement: document.getElementById('scoreboard'),
+            serverStatusElement: document.getElementById('serverStatus'),
+            statusTextElement: document.getElementById('statusText'),
+            roomInfoElement: document.getElementById('roomInfo'),
+            roomCodeElement: document.getElementById('roomCode'),
+            startTime: 0, // New property to track game start time
+            multiplayer: {
+                connection: null,
+                roomCode: null,
+                isHost: false,
+                players: {},
+                playerCount: 0,
+                lastUpdate: 0,
+                pendingUpdates: []
+            }
+        };
+
+        function init() {
+            game.ctx = game.canvas.getContext('2d');
+            resizeCanvas();
+            
+            document.querySelectorAll('.mode-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const mode = this.getAttribute('data-mode');
+                    game.gameMode = mode;
+                    
+                    document.querySelectorAll('.mode-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById(mode + 'Options').classList.add('active');
+                });
+            });
+            
+            document.getElementById('startSingleplayer').addEventListener('click', startSingleplayer);
+            document.getElementById('createRoom').addEventListener('click', createMultiplayerRoom);
+            document.getElementById('joinRoom').addEventListener('click', joinMultiplayerRoom);
+            document.getElementById('startMultiplayer').addEventListener('click', startMultiplayerGame);
+            document.getElementById('leaveRoom').addEventListener('click', leaveMultiplayerRoom);
+            
+            window.addEventListener('resize', resizeCanvas);
+            game.canvas.addEventListener('mousemove', handlePointer);
+            game.canvas.addEventListener('touchmove', handlePointer, { passive: false });
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resizeCanvas() {
+            game.width = window.innerWidth;
+            game.height = window.innerHeight;
+            game.canvas.width = game.width;
+            game.canvas.height = game.height;
+        }
+
+        function startSingleplayer() {
+            const playerName = document.getElementById('playerName').value || 'Player';
+            const aiPlayersCount = parseInt(document.getElementById('aiPlayers').value);
+            const fieldSize = document.getElementById('fieldSize').value;
+            
+            game.fieldWidth = CONFIG.FIELD[fieldSize].width;
+            game.fieldHeight = CONFIG.FIELD[fieldSize].height;
+            
+            game.menuElement.classList.add('hidden');
+            game.serverStatusElement.classList.remove('hidden');
+            game.statusTextElement.textContent = 'Single Player Mode';
+            game.roomInfoElement.classList.add('hidden');
+            
+            initializePlayers(playerName, aiPlayersCount);
+            initializeFood();
+            
+            game.gameMode = 'singleplayer';
+            game.isRunning = true;
+            game.startTime = performance.now(); // Record start time
+            game.lastTime = game.startTime;
+            
+            // Set initial immunity for human player
+            game.players[game.playerIndex].immuneUntil = game.startTime + 5000; // Increased to 5 seconds
+        }
+
+        function initializePlayers(playerName, aiCount) {
+            game.players = [];
+            game.playerIndex = 0;
+            
+            function getDistributedStartPosition(index, total) {
+                const angle = (index / total) * Math.PI * 2;
+                const distance = Math.min(game.fieldWidth, game.fieldHeight) * 0.3;
+                return {
+                    x: game.fieldWidth / 2 + Math.cos(angle) * distance,
+                    y: game.fieldHeight / 2 + Math.sin(angle) * distance
+                };
+            }
+            
+            const playerPos = getDistributedStartPosition(0, aiCount + 1);
+            addPlayer(playerName, false, null, playerPos.x, playerPos.y);
+            
+            for (let i = 0; i < aiCount; i++) {
+                const personalityIndex = Math.floor(Math.random() * CONFIG.SNAKE.aiPersonalities.length);
+                const personality = CONFIG.SNAKE.aiPersonalities[personalityIndex];
+                const aiPos = getDistributedStartPosition(i + 1, aiCount + 1);
+                addPlayer(`Bot ${i+1}`, true, personality, aiPos.x, aiPos.y);
+            }
+        }
+
+        function addPlayer(name, isAI, aiPersonality = null, startX, startY) {
+            const colorIndex = game.players.length % CONFIG.COLORS.playerGradientStart.length;
+            const startColor = CONFIG.COLORS.playerGradientStart[colorIndex];
+            const endColor = CONFIG.COLORS.playerGradientEnd[colorIndex];
+            
+            startX = startX || Math.random() * game.fieldWidth;
+            startY = startY || Math.random() * game.fieldHeight;
+            
+            const direction = Math.random() * Math.PI * 2;
+            
+            const segments = [];
+            // Increase spacing between segments to prevent initial self-collision
+            const segmentSpacing = CONFIG.SNAKE.segmentSize * 1.5; // Increased spacing
+            for (let i = 0; i < CONFIG.SNAKE.initialLength; i++) {
+                segments.push({
+                    x: startX - i * Math.cos(direction) * segmentSpacing,
+                    y: startY - i * Math.sin(direction) * segmentSpacing
+                });
+            }
+            
+            let speed = CONFIG.SNAKE.speedFactor * CONFIG.SNAKE.segmentSize;
+            let turnSpeed = CONFIG.SNAKE.turnSpeed;
+            
+            if (isAI && aiPersonality) {
+                speed *= aiPersonality.speedMult;
+                turnSpeed *= aiPersonality.turnSpeedMult;
+            }
+            
+            game.players.push({
+                id: generateUniqueId(),
+                name,
+                isAI,
+                segments,
+                direction,
+                targetDirection: direction,
+                speed: speed,
+                turnSpeed: turnSpeed,
+                color: {
+                    start: startColor,
+                    end: endColor
+                },
+                score: 0,
+                aiTarget: { x: startX, y: startY },
+                aiUpdateTime: 0,
+                aiPersonality: aiPersonality || null,
+                immuneUntil: null
+            });
+        }
+
+        function initializeFood() {
+            game.foods = [];
+            for (let i = 0; i < CONFIG.FOOD.count; i++) {
+                addFood();
+            }
+        }
+
+        function addFood() {
+            const size = CONFIG.FOOD.minSize + Math.random() * (CONFIG.FOOD.maxSize - CONFIG.FOOD.minSize);
+            const value = Math.ceil(size / CONFIG.FOOD.minSize);
+            const hue = Math.floor(Math.random() * 360);
+            
+            game.foods.push({
+                id: generateUniqueId(),
+                x: Math.random() * game.fieldWidth,
+                y: Math.random() * game.fieldHeight,
+                size,
+                value,
+                color: `hsl(${hue}, 100%, 50%)`,
+                glowColor: `hsla(${hue}, 100%, 70%, 0.8)`
+            });
+        }
+
+        function createMultiplayerRoom() {
+            const playerName = document.getElementById('mpPlayerName').value || 'Player';
+            connectToServer(playerName, null);
+            document.getElementById('createJoinOptions').classList.add('hidden');
+            document.getElementById('waitingRoom').classList.remove('hidden');
+            document.getElementById('startMultiplayer').disabled = false;
+            game.multiplayer.isHost = true;
+        }
+
+        function joinMultiplayerRoom() {
+            const playerName = document.getElementById('mpPlayerName').value || 'Player';
+            const roomCode = document.getElementById('roomCodeInput').value.toUpperCase();
+            if (!roomCode) {
+                alert('Please enter a room code');
+                return;
+            }
+            connectToServer(playerName, roomCode);
+            document.getElementById('createJoinOptions').classList.add('hidden');
+            document.getElementById('waitingRoom').classList.remove('hidden');
+            document.getElementById('startMultiplayer').disabled = true;
+            game.multiplayer.isHost = false;
+        }
+
+        function leaveMultiplayerRoom() {
+            if (game.multiplayer.connection) {
+                game.multiplayer.connection.close();
+            }
+            document.getElementById('createJoinOptions').classList.remove('hidden');
+            document.getElementById('waitingRoom').classList.add('hidden');
+            document.getElementById('waitingPlayers').innerHTML = '';
+            game.multiplayer.roomCode = null;
+            game.multiplayer.isHost = false;
+            game.multiplayer.players = {};
+            game.multiplayer.playerCount = 0;
+            game.serverStatusElement.classList.add('hidden');
+        }
+
+        function startMultiplayerGame() {
+            if (!game.multiplayer.isHost) return;
+            sendToServer({
+                type: 'startGame',
+                fieldSize: 'medium'
+            });
+        }
+
+        function connectToServer(playerName, roomCode) {
+            game.serverStatusElement.classList.remove('hidden');
+            game.statusTextElement.textContent = 'Connecting...';
+            game.multiplayer.connection = new WebSocket(CONFIG.MULTIPLAYER.server);
+            
+            game.multiplayer.connection.addEventListener('open', () => {
+                game.statusTextElement.textContent = 'Connected';
+                sendToServer({
+                    type: roomCode ? 'joinRoom' : 'createRoom',
+                    playerName: playerName,
+                    roomCode: roomCode
+                });
+            });
+            
+            game.multiplayer.connection.addEventListener('message', (event) => {
+                handleServerMessage(JSON.parse(event.data));
+            });
+            
+            game.multiplayer.connection.addEventListener('close', () => {
+                game.statusTextElement.textContent = 'Disconnected';
+                if (game.isRunning && game.gameMode === 'multiplayer') {
+                    setTimeout(() => {
+                        connectToServer(playerName, game.multiplayer.roomCode);
+                    }, CONFIG.MULTIPLAYER.reconnectDelay);
+                }
+            });
+            
+            game.multiplayer.connection.addEventListener('error', (error) => {
+                console.error('WebSocket error:', error);
+                game.statusTextElement.textContent = 'Connection Error';
+            });
+        }
+
+        function handleServerMessage(message) {
+            switch (message.type) {
+                case 'roomCreated':
+                    game.multiplayer.roomCode = message.roomCode;
+                    game.roomCodeElement.textContent = message.roomCode;
+                    document.getElementById('shareRoomCode').textContent = message.roomCode;
+                    game.roomInfoElement.classList.remove('hidden');
+                    game.statusTextElement.textContent = 'Room Created';
+                    break;
+                case 'roomJoined':
+                    game.multiplayer.roomCode = message.roomCode;
+                    game.roomCodeElement.textContent = message.roomCode;
+                    document.getElementById('shareRoomCode').textContent = message.roomCode;
+                    game.roomInfoElement.classList.remove('hidden');
+                    game.statusTextElement.textContent = 'Room Joined';
+                    break;
+                case 'roomError':
+                    alert(message.error);
+                    leaveMultiplayerRoom();
+                    break;
+                case 'playerList':
+                    updateWaitingPlayersList(message.players);
+                    break;
+                case 'gameStarting':
+                    startMultiplayerGameClient(message);
+                    break;
+                case 'gameState':
+                    updateMultiplayerGameState(message);
+                    break;
+                case 'foodEaten':
+                    handleFoodEaten(message);
+                    break;
+                case 'playerDied':
+                    handlePlayerDied(message);
+                    break;
+            }
+        }
+
+        function updateWaitingPlayersList(players) {
+            const list = document.getElementById('waitingPlayers');
+            list.innerHTML = '';
+            game.multiplayer.playerCount = players.length;
+            document.querySelector('#playersList div').textContent = `Players (${players.length}):`;
+            players.forEach(player => {
+                const playerItem = document.createElement('div');
+                playerItem.textContent = player.name;
+                if (player.isHost) {
+                    playerItem.textContent += ' (Host)';
+                    playerItem.style.fontWeight = 'bold';
+                }
+                list.appendChild(playerItem);
+            });
+        }
+
+        function startMultiplayerGameClient(message) {
+            game.menuElement.classList.add('hidden');
+            game.gameMode = 'multiplayer';
+            game.fieldWidth = message.fieldWidth;
+            game.fieldHeight = message.fieldHeight;
+            game.isRunning = true;
+            game.lastTime = performance.now();
+            game.startTime = performance.now();
+            game.playerIndex = message.yourIndex;
+            game.players = message.players;
+            game.foods = message.foods;
+            game.statusTextElement.textContent = 'Multiplayer Game';
+        }
+
+        function updateMultiplayerGameState(message) {
+            for (let i = 0; i < message.players.length; i++) {
+                const serverPlayer = message.players[i];
+                if (i === game.playerIndex) continue;
+                if (game.players[i]) {
+                    game.players[i].segments = serverPlayer.segments;
+                    game.players[i].direction = serverPlayer.direction;
+                    game.players[i].targetDirection = serverPlayer.targetDirection;
+                    game.players[i].score = serverPlayer.score;
+                }
+            }
+        }
+
+        function handleFoodEaten(message) {
+            for (let i = 0; i < game.foods.length; i++) {
+                if (game.foods[i].id === message.foodId) {
+                    game.foods.splice(i, 1);
+                    break;
+                }
+            }
+            game.foods.push(message.newFood);
+            if (game.players[message.playerIndex]) {
+                game.players[message.playerIndex].score = message.newScore;
+            }
+        }
+
+        function handlePlayerDied(message) {
+            alert(`Player ${game.players[message.playerIndex].name} died!`);
+            if (message.playerIndex === game.playerIndex) {
+                leaveMultiplayerRoom();
+                game.isRunning = false;
+                game.menuElement.classList.remove('hidden');
+            }
+        }
+
+        function sendToServer(data) {
+            if (game.multiplayer.connection && 
+                game.multiplayer.connection.readyState === WebSocket.OPEN) {
+                game.multiplayer.connection.send(JSON.stringify(data));
+            }
+        }
+
+        function sendPlayerUpdate() {
+            if (game.gameMode !== 'multiplayer' || game.playerIndex >= game.players.length) return;
+            const player = game.players[game.playerIndex];
+            const now = performance.now();
+            if (now - game.multiplayer.lastUpdate < CONFIG.MULTIPLAYER.updateInterval) return;
+            game.multiplayer.lastUpdate = now;
+            sendToServer({
+                type: 'playerUpdate',
+                index: game.playerIndex,
+                segments: player.segments,
+                direction: player.direction,
+                targetDirection: player.targetDirection,
+                score: player.score
+            });
+        }
+
+        function handlePointer(e) {
+            e.preventDefault();
+            let clientX, clientY;
+            if (e.type === 'touchmove') {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            const rect = game.canvas.getBoundingClientRect();
+            game.pointerX = (clientX - rect.left) / game.camera.zoom + game.camera.x - game.width / (2 * game.camera.zoom);
+            game.pointerY = (clientY - rect.top) / game.camera.zoom + game.camera.y - game.height / (2 * game.camera.zoom);
+        }
+
+        function gameLoop(timestamp) {
+            const deltaTime = (timestamp - game.lastTime) / 1000;
+            game.lastTime = timestamp;
+            
+            if (game.isRunning) {
+                update(deltaTime);
+                if (game.gameMode === 'multiplayer') {
+                    sendPlayerUpdate();
+                }
+            }
+            
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update(deltaTime) {
+            const cappedDelta = Math.min(deltaTime, 0.05);
+            updatePlayers(cappedDelta);
+            updateCamera(cappedDelta);
+            // Only check collisions after 1 second to give initial immunity time
+            if (performance.now() - game.startTime > 1000) {
+                checkCollisions();
+            }
+            updateScoreboard();
+        }
+
+        function updatePlayers(deltaTime) {
+            for (let i = 0; i < game.players.length; i++) {
+                const player = game.players[i];
+                if (game.gameMode === 'multiplayer' && i !== game.playerIndex) continue;
+                
+                if (i === game.playerIndex && !player.isAI) {
+                    const head = player.segments[0];
+                    player.targetDirection = Math.atan2(game.pointerY - head.y, game.pointerX - head.x);
+                } else if (player.isAI) {
+                    updateAI(player, deltaTime);
+                }
+                
+                const angleDiff = angleDifference(player.direction, player.targetDirection);
+                player.direction += angleDiff * player.turnSpeed;
+                
+                const head = player.segments[0];
+                const newHead = {
+                    x: head.x + Math.cos(player.direction) * player.speed * deltaTime,
+                    y: head.y + Math.sin(player.direction) * player.speed * deltaTime
+                };
+                
+                if (newHead.x < 0) newHead.x = game.fieldWidth;
+                if (newHead.x > game.fieldWidth) newHead.x = 0;
+                if (newHead.y < 0) newHead.y = game.fieldHeight;
+                if (newHead.y > game.fieldHeight) newHead.y = 0;
+                
+                player.segments.unshift(newHead);
+                
+                if (player.segments.length > CONFIG.SNAKE.initialLength + player.score * CONFIG.SNAKE.growthPerFood) {
+                    player.segments.pop();
+                }
+            }
+        }
+        
+        function updateAI(player, deltaTime) {
+            player.aiUpdateTime += deltaTime * 1000;
+            if (player.aiUpdateTime >= CONFIG.SNAKE.aiUpdateInterval) {
+                player.aiUpdateTime = 0;
+                const personality = player.aiPersonality || { targetPreference: 'food' };
+                if (personality.targetPreference === 'wander' || 
+                    (personality.targetPreference === 'mixed' && Math.random() < CONFIG.SNAKE.aiWanderFactor)) {
+                    player.aiTarget = {
+                        x: Math.random() * game.fieldWidth,
+                        y: Math.random() * game.fieldHeight
+                    };
+                } else {
+                    let nearestFood = null;
+                    let minDist = Number.MAX_VALUE;
+                    const head = player.segments[0];
+                    for (const food of game.foods) {
+                        const dx = food.x - head.x;
+                        const dy = food.y - head.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            nearestFood = food;
+                        }
+                    }
+                    if (nearestFood) {
+                        player.aiTarget = { x: nearestFood.x, y: nearestFood.y };
+                    }
+                    addObstacleAvoidance(player);
+                }
+            }
+            if (player.aiTarget) {
+                const head = player.segments[0];
+                player.targetDirection = Math.atan2(player.aiTarget.y - head.y, player.aiTarget.x - head.x);
+            }
+        }
+        
+        function addObstacleAvoidance(player) {
+            const head = player.segments[0];
+            const lookAhead = 100;
+            const lookX = head.x + Math.cos(player.direction) * lookAhead;
+            const lookY = head.y + Math.sin(player.direction) * lookAhead;
+            let obstacleDetected = false;
+            for (const otherPlayer of game.players) {
+                if (otherPlayer === player) continue;
+                for (const segment of otherPlayer.segments) {
+                    const dx = segment.x - lookX;
+                    const dy = segment.y - lookY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < lookAhead * 0.5) {
+                        obstacleDetected = true;
+                        break;
+                    }
+                }
+                if (obstacleDetected) break;
+            }
+            if (obstacleDetected) {
+                const avoidAngle = player.direction + (Math.random() > 0.5 ? Math.PI/2 : -Math.PI/2);
+                const avoidDistance = lookAhead * 2;
+                player.aiTarget = {
+                    x: head.x + Math.cos(avoidAngle) * avoidDistance,
+                    y: head.y + Math.sin(avoidAngle) * avoidDistance
+                };
+            }
+        }
+
+        function updateCamera(deltaTime) {
+            if (game.players.length > game.playerIndex) {
+                const player = game.players[game.playerIndex];
+                const head = player.segments[0];
+                game.camera.x += (head.x - game.camera.x) * CONFIG.CAMERA.smoothing;
+                game.camera.y += (head.y - game.camera.y) * CONFIG.CAMERA.smoothing;
+                const targetZoom = CONFIG.CAMERA.zoomFactor * 
+                    Math.max(CONFIG.CAMERA.minZoom, 
+                        Math.min(CONFIG.CAMERA.maxZoom, 
+                            800 / Math.max(100, player.segments.length)
+                        )
+                    );
+                game.camera.zoom += (targetZoom - game.camera.zoom) * CONFIG.CAMERA.smoothing;
+            }
+        }
+
+        function checkCollisions() {
+            if (game.gameMode === 'multiplayer') return;
+
+            for (let i = 0; i < game.players.length; i++) {
+                const player = game.players[i];
+                const head = player.segments[0];
+
+                for (let j = game.foods.length - 1; j >= 0; j--) {
+                    const food = game.foods[j];
+                    const dx = head.x - food.x;
+                    const dy = head.y - food.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < CONFIG.SNAKE.segmentSize / 2 + food.size) {
+                        player.score += food.value;
+                        game.foods.splice(j, 1);
+                        setTimeout(addFood, CONFIG.FOOD.respawnDelay);
+                        if (!player.isAI && i === game.playerIndex) {
+                            player.immuneUntil = Math.max(player.immuneUntil || 0, performance.now() + 3000);
+                        }
+                    }
+                }
+            }
+
+            for (let i = 0; i < game.players.length; i++) {
+                checkSnakeCollisions(game.players[i], i);
+            }
+        }
+
+        function checkSnakeCollisions(player, playerIndex) {
+            const currentTime = performance.now();
+            const isImmune = player.immuneUntil && currentTime < player.immuneUntil;
+            
+            if (isImmune) {
+                console.log(`${player.name} immune until ${Math.round((player.immuneUntil - currentTime) / 1000)}s remaining`);
+                return;
+            }
+
+            const head = player.segments[0];
+            const headRadius = CONFIG.SNAKE.segmentSize / 2;
+            // Use a smaller multiplier (0.4) so collisionDistance = 10 + (10 * 0.4) = 14 pixels
+            const collisionDistance = headRadius + (CONFIG.SNAKE.segmentSize / 2 * 0.4);
+            
+            for (let otherPlayerIndex = 0; otherPlayerIndex < game.players.length; otherPlayerIndex++) {
+                const otherPlayer = game.players[otherPlayerIndex];
+                
+                // For self-collision, skip more segments (e.g., the first 10)
+                for (let segmentIndex = 0; segmentIndex < otherPlayer.segments.length; segmentIndex++) {
+                    if (otherPlayerIndex === playerIndex && segmentIndex < 10) continue;
+                    
+                    const segment = otherPlayer.segments[segmentIndex];
+                    const dx = head.x - segment.x;
+                    const dy = head.y - segment.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < collisionDistance) {
+                        console.log(`${player.name} collided with ${otherPlayer.name} at segment ${segmentIndex}`);
+                        if (game.gameMode === 'singleplayer' && !player.isAI) {
+                            alert(`Game Over! ${player.name}'s Score: ${player.score}`);
+                            game.isRunning = false;
+                            game.menuElement.classList.remove('hidden');
+                            game.serverStatusElement.classList.add('hidden');
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        function updateScoreboard() {
+            const sortedPlayers = [...game.players].sort((a, b) => b.score - a.score);
+            let html = '<h3>Scoreboard</h3>';
+            for (let i = 0; i < sortedPlayers.length; i++) {
+                const player = sortedPlayers[i];
+                const isHuman = !player.isAI && game.players.indexOf(player) === game.playerIndex;
+                html += `<div style="margin: 5px 0; display: flex; align-items: center;">
+                    <div style="width: 15px; height: 15px; background: ${player.color.start}; border-radius: 50%; margin-right: 5px;"></div>
+                    <span style="${isHuman ? 'font-weight: bold;' : ''}">${player.name}: ${player.score}</span>
+                </div>`;
+            }
+            game.scoreboardElement.innerHTML = html;
+        }
+
+        function render() {
+            const ctx = game.ctx;
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, game.width, game.height);
+            
+            ctx.save();
+            ctx.translate(game.width / 2, game.height / 2);
+            ctx.scale(game.camera.zoom, game.camera.zoom);
+            ctx.translate(-game.camera.x, -game.camera.y);
+            
+            renderGrid();
+            renderBorder();
+            renderFood();
+            renderPlayers();
+            
+            ctx.restore();
+        }
+
+        function renderGrid() {
+            const ctx = game.ctx;
+            const gridSize = game.grid.size;
+            ctx.strokeStyle = CONFIG.COLORS.grid;
+            ctx.lineWidth = 1;
+            const startX = Math.floor((game.camera.x - game.width / (2 * game.camera.zoom)) / gridSize) * gridSize;
+            const endX = Math.ceil((game.camera.x + game.width / (2 * game.camera.zoom)) / gridSize) * gridSize;
+            const startY = Math.floor((game.camera.y - game.height / (2 * game.camera.zoom)) / gridSize) * gridSize;
+            const endY = Math.ceil((game.camera.y + game.height / (2 * game.camera.zoom)) / gridSize) * gridSize;
+            for (let x = startX; x <= endX; x += gridSize) {
+                if (x < 0 || x > game.fieldWidth) continue;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, game.fieldHeight);
+                ctx.stroke();
+            }
+            for (let y = startY; y <= endY; y += gridSize) {
+                if (y < 0 || y > game.fieldHeight) continue;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(game.fieldWidth, y);
+                ctx.stroke();
+            }
+        }
+
+        function renderBorder() {
+            const ctx = game.ctx;
+            ctx.strokeStyle = CONFIG.COLORS.border;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(0, 0, game.fieldWidth, game.fieldHeight);
+        }
+
+        function renderFood() {
+            const ctx = game.ctx;
+            for (const food of game.foods) {
+                const gradient = ctx.createRadialGradient(
+                    food.x, food.y, 0,
+                    food.x, food.y, food.size * 2
+                );
+                gradient.addColorStop(0, food.glowColor);
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.beginPath();
+                ctx.fillStyle = gradient;
+                ctx.arc(food.x, food.y, food.size * 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.fillStyle = food.color;
+                ctx.arc(food.x, food.y, food.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function renderPlayers() {
+            const ctx = game.ctx;
+            for (const player of game.players) {
+                renderSnakeBody(ctx, player);
+                renderSnakeHead(ctx, player);
+                renderPlayerName(ctx, player);
+            }
+        }
+
+        function renderSnakeBody(ctx, player) {
+            const segments = player.segments;
+            const segmentSize = CONFIG.SNAKE.segmentSize;
+            for (let i = segments.length - 1; i >= 0; i--) {
+                const segment = segments[i];
+                const gradientPos = i / segments.length;
+                const color = interpolateColor(player.color.start, player.color.end, gradientPos);
+                ctx.beginPath();
+                ctx.fillStyle = color;
+                const radius = i === 0 ? segmentSize / 2 : segmentSize / 2 * 0.8;
+                ctx.arc(segment.x, segment.y, radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (player.immuneUntil && performance.now() < player.immuneUntil) {
+                    const remainingTime = (player.immuneUntil - performance.now()) / 3000;
+                    ctx.globalAlpha = 0.6 * remainingTime;
+                    ctx.beginPath();
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.arc(segment.x, segment.y, radius * 1.3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1.0;
+                }
+                
+                ctx.beginPath();
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.arc(segment.x - radius * 0.3, segment.y - radius * 0.3, radius * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function renderSnakeHead(ctx, player) {
+            const head = player.segments[0];
+            const segmentSize = CONFIG.SNAKE.segmentSize;
+            const eyeSize = segmentSize * 0.2;
+            const eyeOffset = segmentSize * 0.25;
+            const eyeX = Math.cos(player.direction);
+            const eyeY = Math.sin(player.direction);
+            const perpX = -eyeY;
+            const perpY = eyeX;
+            ctx.beginPath();
+            ctx.fillStyle = 'white';
+            ctx.arc(
+                head.x + eyeX * eyeOffset + perpX * eyeOffset,
+                head.y + eyeY * eyeOffset + perpY * eyeOffset,
+                eyeSize, 0, Math.PI * 2
+            );
+            ctx.fill();
+            ctx.beginPath();
+            ctx.fillStyle = 'white';
+            ctx.arc(
+                head.x + eyeX * eyeOffset - perpX * eyeOffset,
+                head.y + eyeY * eyeOffset - perpY * eyeOffset,
+                eyeSize, 0, Math.PI * 2
+            );
+            ctx.fill();
+            const pupilSize = eyeSize * 0.5;
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(
+                head.x + eyeX * (eyeOffset + pupilSize) + perpX * eyeOffset,
+                head.y + eyeY * (eyeOffset + pupilSize) + perpY * eyeOffset,
+                pupilSize, 0, Math.PI * 2
+            );
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(
+                head.x + eyeX * (eyeOffset + pupilSize) - perpX * eyeOffset,
+                head.y + eyeY * (eyeOffset + pupilSize) - perpY * eyeOffset,
+                pupilSize, 0, Math.PI * 2
+            );
+            ctx.fill();
+        }
+
+        function renderPlayerName(ctx, player) {
+            if (player.segments.length === 0) return;
+            const head = player.segments[0];
+            const nameY = head.y - CONFIG.SNAKE.segmentSize - 15;
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            const textWidth = ctx.measureText(player.name).width;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.fillRect(head.x - textWidth/2 - 4, nameY - 12, textWidth + 8, 20);
+            ctx.fillStyle = player.color.start;
+            ctx.fillText(player.name, head.x, nameY);
+        }
+
+        function angleDifference(a1, a2) {
+            const diff = ((a2 - a1 + Math.PI) % (Math.PI * 2)) - Math.PI;
+            return diff < -Math.PI ? diff + Math.PI * 2 : diff;
+        }
+
+        function interpolateColor(color1, color2, factor) {
+            const r1 = parseInt(color1.substring(1, 3), 16);
+            const g1 = parseInt(color1.substring(3, 5), 16);
+            const b1 = parseInt(color1.substring(5, 7), 16);
+            const r2 = parseInt(color2.substring(1, 3), 16);
+            const g2 = parseInt(color2.substring(3, 5), 16);
+            const b2 = parseInt(color2.substring(5, 7), 16);
+            const r = Math.round(r1 + factor * (r2 - r1));
+            const g = Math.round(g1 + factor * (g2 - g1));
+            const b = Math.round(b1 + factor * (b2 - b1));
+            return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
+        }
+        
+        function generateUniqueId() {
+            return Date.now().toString(36) + Math.random().toString(36).substring(2);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
