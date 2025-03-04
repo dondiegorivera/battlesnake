@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<!-- This line tells the web browser that this is an HTML5 document, which is like saying "this is a Scratch project!". -->
+<html lang="en">
+<!-- This is the root of your HTML document, like the main stage in Scratch. 'lang="en"' means the language is English. -->
+<head>
+    <!-- The <head> section contains settings and information about your webpage, but it's not displayed on the page itself. Think of it like the project settings in Scratch. -->
+    <meta charset="UTF-8">
+    <!-- This line sets the character encoding to UTF-8, which lets you use almost any character, like letters, numbers, and symbols.  It's a technical detail, but important for displaying text correctly. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- This line is for making your game look good on different devices, like phones and computers. It tells the browser to set the game's view to the device's screen width and zoom level. -->
+    <title>Gradient Snake</title>
+    <!-- This sets the title of your webpage, which you see in the browser tab or window title bar.  Like the project name in Scratch. -->
+    <style>
+        /* <style> tags are used to write CSS code. CSS is like the "look" or "costumes" for your webpage. It controls colors, sizes, positions, and more. */
+        body {
+            /* 'body' refers to the whole webpage itself. */
+            margin: 0; /* 'margin' is the space outside the edge of an element. Setting it to 0 removes any space around the webpage. */
+            padding: 0; /* 'padding' is the space inside the edge of an element. Setting it to 0 removes any space inside the webpage's edge. */
+            overflow: hidden; /* 'overflow: hidden' means if anything goes outside the visible area of the webpage, hide it. This is good for games so things don't scroll weirdly. */
+            background-color: #222; /* 'background-color' sets the background color of the webpage. #222 is a dark gray color. Like setting the stage backdrop color in Scratch. */
+            font-family: Arial, sans-serif; /* 'font-family' sets the font for the text on the webpage. Arial is a common font. If Arial isn't available, it will use any 'sans-serif' font. */
+            touch-action: none; /*  This disables default touch actions like zooming when you touch the screen, which is useful for games. */
+        }
+        canvas {
+            /* 'canvas' is a special HTML element used for drawing graphics using JavaScript. It's like a drawing board. */
+            display: block; /* 'display: block' makes the canvas behave like a block element, taking up the full width available. */
+        }
+        #gameContainer {
+            /* '#' means this is an 'id'. 'id's are like unique names for HTML elements, used to target them specifically with CSS or JavaScript. Think of it like naming a specific sprite in Scratch. 'gameContainer' is the name we chose for this specific <div>. */
+            position: relative; /* 'position: relative' means we can move this element around relative to its normal position on the page, and other elements inside it can be positioned relative to it. */
+            width: 100vw; /* 'width: 100vw' sets the width to 100% of the viewport width (the visible width of the browser window). 'vw' stands for viewport width. */
+            height: 100vh; /* 'height: 100vh' sets the height to 100% of the viewport height (the visible height of the browser window). 'vh' stands for viewport height. So, 'gameContainer' will cover the whole browser window. */
+        }
+        #scoreboard {
+            /* Another 'id', this time for the scoreboard. */
+            position: absolute; /* 'position: absolute' lets you position this element exactly where you want inside its parent ('gameContainer' in this case), ignoring the normal flow of the page. */
+            top: 10px; /* 'top: 10px' positions the top edge of the scoreboard 10 pixels from the top of 'gameContainer'. */
+            right: 10px; /* 'right: 10px' positions the right edge of the scoreboard 10 pixels from the right of 'gameContainer'. */
+            background-color: rgba(0, 0, 0, 0.6); /* 'rgba' is for colors with transparency. (0, 0, 0) is black, and 0.6 is the opacity (how see-through it is). So, a slightly see-through black background. */
+            color: white; /* 'color: white' sets the text color to white. */
+            padding: 10px; /* 'padding: 10px' adds 10 pixels of space inside the scoreboard around the text. */
+            border-radius: 5px; /* 'border-radius: 5px' makes the corners of the scoreboard rounded. */
+            max-height: 300px; /* 'max-height: 300px' sets the maximum height of the scoreboard. If the content is taller than 300px, it will become scrollable. */
+            overflow-y: auto; /* 'overflow-y: auto' adds a vertical scrollbar if the content inside is too tall to fit within 'max-height'. */
+            min-width: 150px; /* 'min-width: 150px' sets the minimum width of the scoreboard to 150 pixels, so it doesn't get too narrow. */
+        }
+        #menu {
+            /* 'id' for the game menu. */
+            position: absolute; /* Again, absolute positioning to place it exactly where we want. */
+            top: 50%; /* 'top: 50%' positions the top edge of the menu at the vertical center of 'gameContainer'. */
+            left: 50%; /* 'left: 50%' positions the left edge of the menu at the horizontal center of 'gameContainer'. */
+            transform: translate(-50%, -50%); /* 'transform: translate(-50%, -50%)' is a trick to perfectly center the menu. It moves the menu back by half its own width and height, so its center is exactly at the center of 'gameContainer'. */
+            background-color: rgba(0, 0, 0, 0.8); /* Slightly more opaque black background for the menu. */
+            color: white; /* White text color. */
+            padding: 20px; /* More padding inside the menu. */
+            border-radius: 10px; /* More rounded corners for the menu. */
+            text-align: center; /* 'text-align: center' centers the text inside the menu horizontally. */
+            min-width: 300px; /* Minimum width for the menu. */
+        }
+        button {
+            /* CSS for <button> elements. */
+            background-color: #4CAF50; /* Green background color for buttons. #4CAF50 is a specific shade of green. */
+            color: white; /* White text on buttons. */
+            border: none; /* 'border: none' removes the default button border. */
+            padding: 10px 20px; /* Padding inside the buttons (10px top/bottom, 20px left/right). */
+            margin: 5px; /* 'margin: 5px' adds a small space around each button. */
+            border-radius: 5px; /* Rounded corners for buttons. */
+            cursor: pointer; /* 'cursor: pointer' changes the mouse cursor to a hand pointer when you hover over a button, indicating it's clickable. */
+            transition: background-color 0.3s; /* 'transition' makes changes to CSS properties animated. Here, it animates changes to 'background-color' over 0.3 seconds, making hover effects smooth. */
+        }
+        button:hover {
+            /* ':hover' is a CSS pseudo-class. It applies styles when you hover your mouse over a button. */
+            background-color: #45a049; /* A slightly darker green for the button background when you hover. #45a049 is a darker shade of green. */
+        }
+        select, input {
+            /* CSS for <select> (dropdown menus) and <input> (text boxes) elements. */
+            padding: 8px; /* Padding inside dropdowns and text boxes. */
+            margin: 5px; /* Margin around dropdowns and text boxes. */
+            border-radius: 5px; /* Rounded corners for dropdowns and text boxes. */
+        }
+        .hidden {
+            /* '.' means this is a 'class'. 'class'es are like categories for HTML elements. You can apply the same CSS style to multiple elements that have the same class. Think of it like costumes in Scratch - you can have multiple sprites with the same costume style. 'hidden' is the class name we chose. */
+            display: none; /* 'display: none' makes the element completely invisible and removes it from the page layout. It's like using the "hide" block in Scratch. */
+        }
+        #serverStatus {
+            /* 'id' for the server status indicator. */
+            position: absolute; /* Absolute positioning. */
+            bottom: 10px; /* Positioned at the bottom. */
+            left: 10px; /* Positioned at the left. */
+            color: white; /* White text color. */
+            background-color: rgba(0, 0, 0, 0.6); /* Slightly see-through black background. */
+            padding: 5px 10px; /* Smaller padding. */
+            border-radius: 5px; /* Rounded corners. */
+        }
+        #roomCode {
+            /* 'id' for the room code display. */
+            font-weight: bold; /* 'font-weight: bold' makes the text bold. */
+            background-color: #444; /* A darker gray background. */
+            padding: 5px 8px; /* Padding. */
+            border-radius: 3px; /* Slightly rounded corners. */
+        }
+        .mode-tab {
+            /* Class for the mode tabs (Single Player/Multiplayer). */
+            display: inline-block; /* 'display: inline-block' makes these elements flow like text but you can still set their width and height. They'll sit next to each other in a line. */
+            padding: 8px 15px; /* Padding. */
+            cursor: pointer; /* Pointer cursor on hover. */
+            background-color: #333; /* Darker gray background. */
+            border-radius: 5px 5px 0 0; /* Rounded corners, but only at the top. */
+            margin-right: 5px; /* Small space to the right of each tab. */
+        }
+        .mode-tab.active {
+            /* '.mode-tab.active' means this style applies to elements with *both* the 'mode-tab' class *and* the 'active' class.  It's like saying "when a mode-tab is active...". */
+            background-color: #4CAF50; /* Green background for the active tab, to show it's selected. */
+        }
+        .mode-content {
+            /* Class for the content sections of each mode (Single Player options, Multiplayer options). */
+            display: none; /* Initially hidden. */
+            background-color: rgba(0, 0, 0, 0.5); /* Slightly see-through black background. */
+            padding: 15px; /* Padding. */
+            border-radius: 0 5px 5px 5px; /* Rounded corners, but only at the bottom and right. */
+            margin-top: -2px; /* Small negative top margin to make it visually connect with the tabs. */
+        }
+        .mode-content.active {
+            /* When a mode content is active... */
+            display: block; /* ...show it. */
+        }
+    </style>
+</head>
+<body>
+    <!-- The <body> section is what you actually see on the webpage. It's like the stage and sprites in your Scratch project. -->
+    <div id="gameContainer">
+        <!-- <div> is a general-purpose container element in HTML. We're using it here as a container for our game. 'id="gameContainer"' gives it the unique name "gameContainer" so we can style it with CSS and access it with JavaScript. -->
+        <canvas id="gameCanvas"></canvas>
+        <!-- <canvas id="gameCanvas"></canvas> is where we will draw our game graphics using JavaScript. 'id="gameCanvas"' gives it the name "gameCanvas". -->
+        <div id="scoreboard"></div>
+        <!-- Another <div>, this one for the scoreboard. 'id="scoreboard"' names it "scoreboard". We'll put the player scores inside this div. -->
+        <div id="serverStatus" class="hidden">
+            <!-- <div> for showing server connection status. 'id="serverStatus"' is the name and 'class="hidden"' means it starts hidden. -->
+            <span id="statusText">Offline</span>
+            <!-- <span> is like a <div> but for inline content (it doesn't create a line break). 'id="statusText"' is for the status text itself (like "Connecting...", "Connected", etc.). -->
+            <div id="roomInfo" class="hidden">
+                <!-- <div> to hold room code information, starts hidden. 'id="roomInfo"'. -->
+                Room: <span id="roomCode">XXXX</span>
+                <!-- <span> to display the room code itself. 'id="roomCode"'. -->
+            </div>
+        </div>
+        <div id="menu">
+            <!-- <div> for the main game menu. 'id="menu"'. -->
+            <h2>Gradient Snake</h2>
+            <!-- <h2> is a heading, like a title. This is the game title. -->
+
+            <div class="mode-selector">
+                <!-- <div> to group the mode tabs. 'class="mode-selector"'.  Using a class because we might want to style other mode selectors the same way later. -->
+                <div class="mode-tab active" data-mode="singleplayer">Single Player</div>
+                <!-- <div> for the "Single Player" tab. 'class="mode-tab"' to style it as a tab, 'class="active"' to make it the default selected tab, 'data-mode="singleplayer"' is a custom attribute to store which mode this tab represents (for JavaScript to use). -->
+                <div class="mode-tab" data-mode="multiplayer">Multiplayer</div>
+                <!-- <div> for the "Multiplayer" tab. 'class="mode-tab"', 'data-mode="multiplayer"'. -->
+            </div>
+
+            <div id="singleplayerOptions" class="mode-content active">
+                <!-- <div> for the Single Player options section. 'id="singleplayerOptions"', 'class="mode-content active"' to make it visible initially because the "Single Player" tab is active. -->
+                <div>
+                    <!-- Simple <div> for grouping the label and input. -->
+                    <label for="playerName">Your Name:</label>
+                    <!-- <label> is for text labels associated with form elements (like inputs). 'for="playerName"' links this label to the input with 'id="playerName"'. -->
+                    <input type="text" id="playerName" value="Player">
+                    <!-- <input type="text"> is a text box where the player can type their name. 'id="playerName"' is its name, 'value="Player"' sets a default name. -->
+                </div>
+                <div>
+                    <label for="aiPlayers">AI Bots:</label>
+                    <select id="aiPlayers">
+                        <!-- <select> is a dropdown menu. 'id="aiPlayers"' is its name. -->
+                        <option value="0">0</option>
+                        <!-- <option> is an item in the dropdown menu. 'value="0"' is the value that will be used in JavaScript if this option is selected. "0" is what the player sees in the menu. -->
+                        <option value="3" selected>3</option>
+                        <!-- 'selected' means this option is chosen by default when the page loads. -->
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="19">19</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="fieldSize">Field Size:</label>
+                    <select id="fieldSize">
+                        <option value="small">Small</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="large">Large</option>
+                    </select>
+                </div>
+                <button id="startSingleplayer">Start Game</button>
+                <!-- <button> is a clickable button. 'id="startSingleplayer"' is its name, "Start Game" is the text on the button.  We'll use JavaScript to make this button do something when clicked. -->
+            </div>
+
+            <div id="multiplayerOptions" class="mode-content">
+                <!-- <div> for the Multiplayer options section. 'id="multiplayerOptions"', 'class="mode-content"' (without 'active' at first, so it's hidden initially). -->
+                <div>
+                    <label for="mpPlayerName">Your Name:</label>
+                    <input type="text" id="mpPlayerName" value="Player">
+                </div>
+                <div id="createJoinOptions">
+                    <!-- <div> to group the "Create Room" and "Join Room" options. 'id="createJoinOptions"'. -->
+                    <button id="createRoom">Create Room</button>
+                    <div>- or -</div>
+                    <!-- Simple <div> for the "- or -" text. -->
+                    <div>
+                        <!-- <div> to group the room code input and "Join Room" button. -->
+                        <input type="text" id="roomCodeInput" placeholder="Room Code">
+                        <!-- <input type="text"> for entering the room code. 'id="roomCodeInput"', 'placeholder="Room Code"' shows "Room Code" in the text box when it's empty, as a hint. -->
+                        <button id="joinRoom">Join Room</button>
+                    </div>
+                </div>
+                <div id="waitingRoom" class="hidden">
+                    <!-- <div> for the waiting room section, starts hidden. 'id="waitingRoom"', 'class="hidden"'. -->
+                    <h3>Waiting for players...</h3>
+                    <!-- <h3> is a smaller heading. -->
+                    <div>Share this code to invite players: <span id="shareRoomCode">XXXX</span></div>
+                    <!-- <div> to display the sharing instruction and room code. 'id="shareRoomCode"' is for the room code text in the waiting room. -->
+                    <div id="playersList">
+                        <!-- <div> to display the list of players. 'id="playersList"'. -->
+                        <div>Players (1):</div>
+                        <!-- <div> for the "Players (1):" text. -->
+                        <div id="waitingPlayers"></div>
+                        <!-- <div> where we will put the names of players who joined. 'id="waitingPlayers"'. -->
+                    </div>
+                    <button id="startMultiplayer">Start Game</button>
+                    <button id="leaveRoom">Leave Room</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* <script> tags are used to write JavaScript code. JavaScript is what makes your webpage interactive! It's like the scripts you write for sprites in Scratch to make them move and react. */
+
+        // CONFIG is like a place to store all your game settings in one place. It's called an "object" in JavaScript, like a container for variables.
+        const CONFIG = {
+            // FIELD settings - how big the game area is.
+            FIELD: {
+                // Different field sizes, like "Small", "Medium", "Large". These are like different backdrops you could choose in Scratch, but here they change the game world size.
+                small: { width: 2000, height: 2000 }, // For "small" field size, width is 2000, height is 2000 (in game units, not pixels).
+                medium: { width: 4000, height: 4000 }, // For "medium", it's 4000x4000.
+                large: { width: 8000, height: 8000 }  // For "large", it's 8000x8000.
+            },
+            // SNAKE settings - how the snake behaves.
+            SNAKE: {
+                initialLength: 10,     // How many segments the snake starts with. Like setting the initial size of a sprite.
+                segmentSize: 20,      // How big each segment of the snake is (in pixels).
+                speedFactor: 5.00,      // Base speed of the snake.
+                turnSpeed: 0.15,       // How quickly the snake can turn.
+                aiUpdateInterval: 300,  // How often AI snakes rethink their moves (in milliseconds). AI is for computer-controlled snakes.
+                aiWanderFactor: 0.2,    // How likely AI snakes are to just wander around instead of always chasing food.
+                growthPerFood: 5,       // How many segments the snake grows when it eats food.
+                aiPersonalities: [     // Different "personalities" for AI snakes, making them behave differently.
+                    { speedMult: 0.7, turnSpeedMult: 1.4, targetPreference: 'food' }, // Personality 1: Slower, turns faster, prefers to chase food. 'speedMult' is speed multiplier, 'turnSpeedMult' is turn speed multiplier.
+                    { speedMult: 1.1, turnSpeedMult: 0.8, targetPreference: 'wander' }, // Personality 2: Faster, turns slower, prefers to wander.
+                    { speedMult: 1.0, turnSpeedMult: 1.0, targetPreference: 'mixed' }  // Personality 3: Balanced speed and turning, mixed preference (sometimes food, sometimes wander).
+                ]
+            },
+            // FOOD settings - how food behaves.
+            FOOD: {
+                count: 100,         // How many pieces of food are on the field at once.
+                minSize: 5,         // Smallest size of food.
+                maxSize: 15,        // Largest size of food.
+                respawnDelay: 500   // How long to wait before adding new food after one is eaten (in milliseconds).
+            },
+            // CAMERA settings - how the game camera (view) behaves.
+            CAMERA: {
+                smoothing: 0.1,     // How smoothly the camera follows the player. Smaller number = less smooth, bigger = more smooth.
+                zoomFactor: 0.8,    // Base zoom level of the camera.
+                minZoom: 0.5,       // Minimum zoom level (can't zoom out further than this).
+                maxZoom: 1.5        // Maximum zoom level (can't zoom in further than this).
+            },
+            // MULTIPLAYER settings - settings for playing with other people online.
+            MULTIPLAYER: {
+                updateInterval: 50,    // How often the game sends updates to the server (in milliseconds). Faster updates = smoother multiplayer.
+                reconnectDelay: 2000,  // How long to wait before trying to reconnect if disconnected from the server (in milliseconds).
+                server: 'wss://snake-multiplayer-server.glitch.me', // Address of the multiplayer server. 'wss://' is for secure WebSocket connections, like online chat but for games.
+                roomCodeLength: 4      // How many letters/numbers in the room code for multiplayer.
+            },
+            // COLORS - colors used in the game.
+            COLORS: {
+                grid: '#2a2a2a',             // Color of the grid lines.
+                border: '#444',           // Color of the game field border.
+                foodGlow: 'rgba(255, 255, 255, 0.5)', // Glow color around food (white with some transparency).
+                playerGradientStart: [    // Array of starting colors for player snakes. Gradients make colors blend smoothly.
+                    '#FF5252', '#FF4081', '#E040FB', '#7C4DFF',
+                    '#536DFE', '#448AFF', '#40C4FF', '#18FFFF',
+                    '#64FFDA', '#69F0AE', '#B2FF59', '#EEFF41',
+                    '#FFFF00', '#FFD740', '#FFAB40', '#FF6E40',
+                    '#FF8A80', '#EA80FC', '#B388FF', '#8C9EFF'
+                ],
+                playerGradientEnd: [      // Array of ending colors for player snake gradients.
+                    '#D32F2F', '#C2185B', '#7B1FA2', '#512DA8',
+                    '#303F9F', '#1976D2', '#0288D1', '#0097A7',
+                    '#00796B', '#388E3C', '#689F38', '#AFB42B',
+                    '#FBC02D', '#FFA000', '#F57C00', '#E64A19',
+                    '#D50000', '#AA00FF', '#6200EA', '#304FFE'
+                ]
+            }
+        };
+
+        // 'game' is another object that holds all the important information about the current game state. Think of it like all the variables in your Scratch project that keep track of everything happening.
+        const game = {
+            canvas: document.getElementById('gameCanvas'), // 'canvas' stores the HTML canvas element itself (the drawing board). 'document.getElementById('gameCanvas')' finds the HTML element with the id "gameCanvas".
+            ctx: null, // 'ctx' will hold the "context" of the canvas. The context is like the set of drawing tools you use to draw on the canvas. Initially it's 'null' (empty) because we haven't set it up yet.
+            width: window.innerWidth,  // 'width' stores the current width of the browser window. 'window.innerWidth' gets the width of the browser window.
+            height: window.innerHeight, // 'height' stores the current height of the browser window. 'window.innerHeight' gets the height.
+            fieldWidth: 0,  // 'fieldWidth' will store the width of the game field (set based on chosen size). Starts at 0 and will be set later.
+            fieldHeight: 0, // 'fieldHeight' will store the height of the game field. Starts at 0 and will be set later.
+            pointerX: 0,    // 'pointerX' and 'pointerY' store the current mouse cursor or touch position on the game canvas.
+            pointerY: 0,
+            camera: { x: 0, y: 0, zoom: 1 }, // 'camera' is an object to manage the game camera (what part of the game world you see). 'x' and 'y' are the camera position, 'zoom' is the zoom level.
+            players: [],     // 'players' is an array to store information about all the players in the game (including you and AI bots). An array is like a list in Scratch.
+            foods: [],       // 'foods' is an array to store information about all the food pieces in the game.
+            grid: { size: 100 }, // 'grid' settings, 'size: 100' means grid lines are 100 game units apart.
+            playerIndex: 0,  // 'playerIndex' stores the index (position in the 'players' array) of *your* player. In single player, it's always 0. In multiplayer, it will be assigned by the server.
+            isRunning: false, // 'isRunning' is a boolean (true/false) to track if the game is currently running. Starts as 'false' because the game hasn't started yet.
+            lastTime: 0,     // 'lastTime' is used to keep track of time for smooth animation (how much time has passed since the last frame).
+            gameMode: 'singleplayer', // 'gameMode' stores whether the game is in 'singleplayer' or 'multiplayer' mode. Starts as 'singleplayer'.
+            menuElement: document.getElementById('menu'), // 'menuElement' stores the HTML menu element itself. 'document.getElementById('menu')' finds the HTML element with the id "menu".
+            scoreboardElement: document.getElementById('scoreboard'), // 'scoreboardElement' stores the HTML scoreboard element.
+            serverStatusElement: document.getElementById('serverStatus'), // 'serverStatusElement' stores the HTML server status element.
+            statusTextElement: document.getElementById('statusText'), // 'statusTextElement' stores the HTML element to display status text (like "Connecting...").
+            roomInfoElement: document.getElementById('roomInfo'), // 'roomInfoElement' stores the HTML element containing room code info.
+            roomCodeElement: document.getElementById('roomCode'), // 'roomCodeElement' stores the HTML element to display the room code.
+            startTime: 0, // 'startTime' will record when the game actually starts, used for things like immunity at the start.
+            multiplayer: { // 'multiplayer' is an object to hold all multiplayer related information.
+                connection: null, // 'connection' will store the WebSocket connection to the server. Initially 'null' because we're not connected yet.
+                roomCode: null,   // 'roomCode' will store the room code you are in (if in multiplayer).
+                isHost: false,    // 'isHost' is true if you created the multiplayer room, false if you joined one.
+                players: {},      // 'players' in multiplayer will be an object to store player information received from the server.
+                playerCount: 0,   // 'playerCount' stores the number of players in the multiplayer game.
+                lastUpdate: 0,    // 'lastUpdate' is used to limit how often player updates are sent to the server.
+                pendingUpdates: [] // 'pendingUpdates' is for storing updates that need to be sent to the server (not currently used in this code, might be for future features).
+            }
+        };
+
+        // 'init' function is for setting up the game when the webpage first loads.  Think of it like the "when green flag clicked" block in Scratch.
+        function init() {
+            game.ctx = game.canvas.getContext('2d'); // 'game.canvas.getContext('2d')' gets the 2D drawing context for our canvas and we store it in 'game.ctx'. Now we can draw on the canvas using 'game.ctx'.
+            resizeCanvas(); // Call the 'resizeCanvas' function to make the canvas fit the browser window size.
+
+            // Add event listeners to the mode tabs (Single Player/Multiplayer). Event listeners are like "when [something happens]" blocks in Scratch.
+            document.querySelectorAll('.mode-tab').forEach(tab => { // 'document.querySelectorAll('.mode-tab')' finds all HTML elements with the class "mode-tab". '.forEach()' loop goes through each of them.
+                tab.addEventListener('click', function() { // 'tab.addEventListener('click', ...)' adds a "click" event listener to each tab. When a tab is clicked, the code inside 'function()' will run. 'function()' is an anonymous function (a function without a name).
+                    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active')); // When a tab is clicked, first remove the 'active' class from *all* mode tabs, so only one tab can be active at a time. 't.classList.remove('active')' removes the "active" class from each tab 't'.
+                    this.classList.add('active'); // 'this' inside the function refers to the tab that was clicked. 'this.classList.add('active')' adds the "active" class to the clicked tab, making it look selected (green in CSS).
+
+                    const mode = this.getAttribute('data-mode'); // 'this.getAttribute('data-mode')' gets the value of the 'data-mode' attribute from the clicked tab (which is either "singleplayer" or "multiplayer"). We store this mode in the 'mode' variable.
+                    game.gameMode = mode; // Update the 'game.gameMode' variable to the selected mode.
+
+                    document.querySelectorAll('.mode-content').forEach(content => { // Find all elements with the class "mode-content" (Single Player options, Multiplayer options).
+                        content.classList.remove('active'); // Remove the 'active' class from all mode content sections, hiding them all.
+                    });
+                    document.getElementById(mode + 'Options').classList.add('active'); // 'document.getElementById(mode + 'Options')' constructs the id of the mode content section we want to show (e.g., if 'mode' is "singleplayer", it becomes "singleplayerOptions"). 'classList.add('active')' adds the "active" class to the correct content section, making it visible.
+                });
+            });
+
+            // Add event listeners to the buttons.
+            document.getElementById('startSingleplayer').addEventListener('click', startSingleplayer); // When "startSingleplayer" button is clicked, run the 'startSingleplayer' function.
+            document.getElementById('createRoom').addEventListener('click', createMultiplayerRoom); // When "createRoom" button is clicked, run 'createMultiplayerRoom' function.
+            document.getElementById('joinRoom').addEventListener('click', joinMultiplayerRoom);   // When "joinRoom" button is clicked, run 'joinMultiplayerRoom' function.
+            document.getElementById('startMultiplayer').addEventListener('click', startMultiplayerGame); // When "startMultiplayer" button is clicked, run 'startMultiplayerGame' function.
+            document.getElementById('leaveRoom').addEventListener('click', leaveMultiplayerRoom); // When "leaveRoom" button is clicked, run 'leaveMultiplayerRoom' function.
+
+            // Add event listeners for window resize and mouse/touch input on the canvas.
+            window.addEventListener('resize', resizeCanvas); // When the browser window is resized, run the 'resizeCanvas' function.
+            game.canvas.addEventListener('mousemove', handlePointer); // When the mouse moves over the canvas, run the 'handlePointer' function. 'mousemove' is the event, 'handlePointer' is the function to run.
+            game.canvas.addEventListener('touchmove', handlePointer, { passive: false }); // When there's a touch movement on the canvas, run 'handlePointer' function (for touch devices like phones). '{ passive: false }' is a setting needed for touch events to work correctly in this case.
+
+            requestAnimationFrame(gameLoop); // Start the game loop! 'requestAnimationFrame' is a special function that tells the browser we want to animate something. It calls the 'gameLoop' function repeatedly, creating animation frames, like the "forever" loop in Scratch but smoother and better for games.
+        }
+
+        // 'resizeCanvas' function makes the canvas size match the browser window size.
+        function resizeCanvas() {
+            game.width = window.innerWidth;  // Update 'game.width' with the current window width.
+            game.height = window.innerHeight; // Update 'game.height' with the current window height.
+            game.canvas.width = game.width;   // Set the HTML canvas element's width to the new width.
+            game.canvas.height = game.height; // Set the HTML canvas element's height to the new height.
+        }
+
+        // 'startSingleplayer' function is called when you click the "Start Game" button in Single Player mode.
+        function startSingleplayer() {
+            const playerName = document.getElementById('playerName').value || 'Player'; // Get the player's name from the text box with id "playerName". 'document.getElementById('playerName').value' gets the text typed in the box. '|| 'Player'' means if the text box is empty, use "Player" as the name.
+            const aiPlayersCount = parseInt(document.getElementById('aiPlayers').value); // Get the number of AI bots from the dropdown menu with id "aiPlayers". 'document.getElementById('aiPlayers').value' gets the selected value (which is text), 'parseInt()' converts it to a number.
+            const fieldSize = document.getElementById('fieldSize').value; // Get the chosen field size ("small", "medium", "large") from the dropdown with id "fieldSize".
+
+            game.fieldWidth = CONFIG.FIELD[fieldSize].width;   // Set 'game.fieldWidth' based on the chosen 'fieldSize' from the CONFIG object.  For example, if 'fieldSize' is "medium", it uses 'CONFIG.FIELD.medium.width'.
+            game.fieldHeight = CONFIG.FIELD[fieldSize].height; // Set 'game.fieldHeight' similarly.
+
+            game.menuElement.classList.add('hidden');       // Hide the menu by adding the "hidden" class.
+            game.serverStatusElement.classList.remove('hidden'); // Show the server status area by removing the "hidden" class.
+            game.statusTextElement.textContent = 'Single Player Mode'; // Change the text in the status area to "Single Player Mode".
+            game.roomInfoElement.classList.add('hidden');     // Hide the room info area (not needed in single player).
+
+            initializePlayers(playerName, aiPlayersCount); // Call 'initializePlayers' function to create player snakes (you and AI bots).
+            initializeFood(); // Call 'initializeFood' to create food pieces on the field.
+
+            game.gameMode = 'singleplayer'; // Set the game mode to "singleplayer".
+            game.isRunning = true;        // Set 'game.isRunning' to 'true' to start the game loop.
+            game.startTime = performance.now(); // Record the time when the game starts. 'performance.now()' gives you the current time in milliseconds, very precise.
+            game.lastTime = game.startTime;     // Initialize 'game.lastTime' to the start time.
+
+            // Set initial immunity for human player
+            game.players[game.playerIndex].immuneUntil = game.startTime + 5000; // Make the player immune to collisions for the first 5 seconds (5000 milliseconds) of the game. 'game.players[game.playerIndex]' gets your player object, 'immuneUntil' is a property we're adding to it to track when immunity ends.
+        }
+
+        // 'initializePlayers' function creates all player snakes (you and AI bots) at the start of the game.
+        function initializePlayers(playerName, aiCount) {
+            game.players = [];        // Reset the 'game.players' array to empty, removing any previous players.
+            game.playerIndex = 0;     // Set 'game.playerIndex' to 0, assuming you are always the first player in single player.
+
+            // 'getDistributedStartPosition' function calculates starting positions for players spread out around the center of the field.
+            function getDistributedStartPosition(index, total) {
+                const angle = (index / total) * Math.PI * 2; // Calculate an angle based on the player's index and total number of players. 'Math.PI * 2' is 360 degrees in radians (how angles are used in JavaScript math).
+                const distance = Math.min(game.fieldWidth, game.fieldHeight) * 0.3; // Calculate a distance from the center, based on the smaller of field width and height, making sure players start within the field.
+                return { // Return an object with x and y coordinates for the starting position.
+                    x: game.fieldWidth / 2 + Math.cos(angle) * distance, // 'game.fieldWidth / 2' is the horizontal center of the field. 'Math.cos(angle) * distance' calculates the x-offset based on the angle and distance.
+                    y: game.fieldHeight / 2 + Math.sin(angle) * distance  // 'game.fieldHeight / 2' is the vertical center. 'Math.sin(angle) * distance' calculates the y-offset.
+                };
+            }
+
+            const playerPos = getDistributedStartPosition(0, aiCount + 1); // Calculate starting position for *your* player (index 0). 'aiCount + 1' is the total number of players (you + AI bots).
+            addPlayer(playerName, false, null, playerPos.x, playerPos.y); // Call 'addPlayer' to create *your* player. 'false' means not AI, 'null' means no AI personality (because it's you), 'playerPos.x' and 'playerPos.y' are the calculated start coordinates.
+
+            for (let i = 0; i < aiCount; i++) { // Loop to create AI bots, from 0 up to 'aiCount' (exclusive).
+                const personalityIndex = Math.floor(Math.random() * CONFIG.SNAKE.aiPersonalities.length); // Choose a random AI personality index from the 'CONFIG.SNAKE.aiPersonalities' array. 'Math.random()' gives a random number between 0 and 1, '* CONFIG.SNAKE.aiPersonalities.length' scales it to the number of personalities, 'Math.floor()' rounds it down to a whole number (index).
+                const personality = CONFIG.SNAKE.aiPersonalities[personalityIndex]; // Get the actual AI personality object from the array using the random index.
+                const aiPos = getDistributedStartPosition(i + 1, aiCount + 1); // Calculate starting position for this AI bot (index 'i + 1').
+                addPlayer(`Bot ${i+1}`, true, personality, aiPos.x, aiPos.y); // Call 'addPlayer' to create the AI bot. 'true' means it's AI, 'personality' is the chosen personality, 'aiPos.x' and 'aiPos.y' are the start coordinates.  ``Bot ${i+1}`` creates a player name like "Bot 1", "Bot 2", etc.
+            }
+        }
+
+        // 'addPlayer' function creates a single player snake (either human or AI).
+        function addPlayer(name, isAI, aiPersonality = null, startX, startY) {
+            const colorIndex = game.players.length % CONFIG.COLORS.playerGradientStart.length; // Choose a color index for the player based on the number of players already created. '%' (modulo) makes it loop through the colors if there are more players than colors.
+            const startColor = CONFIG.COLORS.playerGradientStart[colorIndex]; // Get the starting color for the gradient from 'CONFIG.COLORS.playerGradientStart' array using the chosen index.
+            const endColor = CONFIG.COLORS.playerGradientEnd[colorIndex];   // Get the ending color from 'CONFIG.COLORS.playerGradientEnd'.
+
+            startX = startX || Math.random() * game.fieldWidth;   // If 'startX' is not provided (it's 'undefined' or 'null'), generate a random x-coordinate within the game field. '||' is the "or" operator - if the first part is false-like (like 'null' or 'undefined'), use the second part. 'Math.random() * game.fieldWidth' gives a random x within field width.
+            startY = startY || Math.random() * game.fieldHeight; // Same for 'startY' (random y-coordinate).
+
+            const direction = Math.random() * Math.PI * 2; // Choose a random starting direction for the snake (in radians).
+
+            const segments = []; // 'segments' is an array to store the segments of the snake's body.
+            // Increase spacing between segments to prevent initial self-collision
+            const segmentSpacing = CONFIG.SNAKE.segmentSize * 1.5; // Calculate spacing between segments, increased a bit to avoid starting collisions.
+            for (let i = 0; i < CONFIG.SNAKE.initialLength; i++) { // Loop to create the initial snake segments.
+                segments.push({ // Add a new segment object to the 'segments' array.
+                    x: startX - i * Math.cos(direction) * segmentSpacing, // Calculate segment x-coordinate.  '- i * ...' makes segments be placed behind the head, forming the initial snake body. 'Math.cos(direction)' and 'Math.sin(direction)' are used to place segments in the chosen 'direction'.
+                    y: startY - i * Math.sin(direction) * segmentSpacing  // Calculate segment y-coordinate.
+                });
+            }
+
+            let speed = CONFIG.SNAKE.speedFactor * CONFIG.SNAKE.segmentSize; // Set the snake's speed based on 'CONFIG.SNAKE.speedFactor' and 'segmentSize'.
+            let turnSpeed = CONFIG.SNAKE.turnSpeed;                      // Set the snake's turn speed from 'CONFIG.SNAKE.turnSpeed'.
+
+            if (isAI && aiPersonality) { // If it's an AI player *and* it has a personality...
+                speed *= aiPersonality.speedMult;      // ...adjust speed by the personality's 'speedMult' (speed multiplier). '*=' means "multiply by and assign back to".
+                turnSpeed *= aiPersonality.turnSpeedMult; // ...adjust turn speed by personality's 'turnSpeedMult'.
+            }
+
+            game.players.push({ // Add the newly created player object to the 'game.players' array.
+                id: generateUniqueId(), // 'id' is a unique identifier for this player, generated using 'generateUniqueId' function (explained later).
+                name,               // 'name' is the player's name (passed as argument to 'addPlayer').
+                isAI,               // 'isAI' is true if it's an AI player, false if human.
+                segments,           // 'segments' is the array of snake segments we just created.
+                direction,          // 'direction' is the starting direction.
+                targetDirection: direction, // 'targetDirection' is the direction the player *wants* to go. Initially same as 'direction'.
+                speed: speed,         // 'speed' is the calculated speed.
+                turnSpeed: turnSpeed,   // 'turnSpeed' is the calculated turn speed.
+                color: {           // 'color' is an object to store the snake's colors for gradient.
+                    start: startColor, // 'start' color for the gradient.
+                    end: endColor     // 'end' color for the gradient.
+                },
+                score: 0,            // 'score' starts at 0.
+                aiTarget: { x: startX, y: startY }, // 'aiTarget' is where the AI snake is trying to go. Initially set to its starting position.
+                aiUpdateTime: 0,     // 'aiUpdateTime' is used to control how often AI snakes update their target direction.
+                aiPersonality: aiPersonality || null, // 'aiPersonality' stores the AI personality object (if it's an AI player), otherwise 'null'. '|| null' means if 'aiPersonality' is not provided, use 'null'.
+                immuneUntil: null      // 'immuneUntil' stores the time until which the snake is immune to collisions. Initially 'null' (no immunity).
+            });
+        }
+
+        // 'initializeFood' function creates all the initial food pieces in the game.
+        function initializeFood() {
+            game.foods = []; // Reset 'game.foods' array to empty, removing any previous food.
+            for (let i = 0; i < CONFIG.FOOD.count; i++) { // Loop to create the specified number of food pieces ('CONFIG.FOOD.count').
+                addFood(); // Call 'addFood' function to create each food piece.
+            }
+        }
+
+        // 'addFood' function creates a single food piece at a random position.
+        function addFood() {
+            const size = CONFIG.FOOD.minSize + Math.random() * (CONFIG.FOOD.maxSize - CONFIG.FOOD.minSize); // Calculate a random food size between 'minSize' and 'maxSize'.
+            const value = Math.ceil(size / CONFIG.FOOD.minSize); // Calculate the "value" of the food (how much score it gives), based on its size. 'Math.ceil()' rounds up to the nearest whole number.
+            const hue = Math.floor(Math.random() * 360); // Choose a random hue (color) for the food. 'hue' is used in 'hsl' color format (Hue, Saturation, Lightness).
+
+            game.foods.push({ // Add a new food object to the 'game.foods' array.
+                id: generateUniqueId(), // 'id' is a unique identifier for this food piece.
+                x: Math.random() * game.fieldWidth,  // Random x-coordinate within the game field.
+                y: Math.random() * game.fieldHeight, // Random y-coordinate.
+                size,                               // 'size' we calculated.
+                value,                              // 'value' we calculated.
+                color: `hsl(${hue}, 100%, 50%)`,     // 'color' is set using 'hsl' format (Hue-Saturation-Lightness). Hue is the random 'hue', 100% saturation, 50% lightness (bright color).  `` (backticks) are used for template literals, allowing you to put variables inside strings using `${variable}`.
+                glowColor: `hsla(${hue}, 100%, 70%, 0.8)` // 'glowColor' is also 'hsl' but with slightly different lightness (70% for a brighter glow) and 'a' for alpha (transparency), 0.8 makes it slightly see-through. 'hsla' is for Hue-Saturation-Lightness-Alpha.
+            });
+        }
+
+        // 'createMultiplayerRoom' function is called when you click "Create Room" button.
+        function createMultiplayerRoom() {
+            const playerName = document.getElementById('mpPlayerName').value || 'Player'; // Get player name from the multiplayer name input.
+            connectToServer(playerName, null); // Call 'connectToServer' to connect to the server and create a new room. 'null' as the second argument means create a new room (don't join an existing one).
+            document.getElementById('createJoinOptions').classList.add('hidden'); // Hide the "Create Room" and "Join Room" options.
+            document.getElementById('waitingRoom').classList.remove('hidden');   // Show the waiting room section.
+            document.getElementById('startMultiplayer').disabled = false;        // Enable the "Start Game" button in the waiting room (only the host can start). 'disabled = false' makes the button clickable.
+            game.multiplayer.isHost = true;                                     // Set 'game.multiplayer.isHost' to 'true' because you created the room and are the host.
+        }
+
+        // 'joinMultiplayerRoom' function is called when you click "Join Room" button.
+        function joinMultiplayerRoom() {
+            const playerName = document.getElementById('mpPlayerName').value || 'Player'; // Get player name from the multiplayer name input.
+            const roomCode = document.getElementById('roomCodeInput').value.toUpperCase(); // Get the room code typed in the input box with id "roomCodeInput". '.toUpperCase()' converts the room code to uppercase (room codes are usually case-insensitive).
+            if (!roomCode) { // Check if 'roomCode' is empty (player didn't type anything). '!' is the "not" operator.
+                alert('Please enter a room code'); // Show an alert box to the player with the message. 'alert()' is a simple way to show a popup message in the browser.
+                return; // 'return;' stops the function from running further if the room code is empty.
+            }
+            connectToServer(playerName, roomCode); // Call 'connectToServer' to connect to the server and try to join the room with the given 'roomCode'.
+            document.getElementById('createJoinOptions').classList.add('hidden'); // Hide the "Create Room" and "Join Room" options.
+            document.getElementById('waitingRoom').classList.remove('hidden');   // Show the waiting room section.
+            document.getElementById('startMultiplayer').disabled = true;         // Disable the "Start Game" button in the waiting room (only the host can start). 'disabled = true' makes the button unclickable and grayed out.
+            game.multiplayer.isHost = false;                                    // Set 'game.multiplayer.isHost' to 'false' because you joined a room, you are not the host.
+        }
+
+        // 'leaveMultiplayerRoom' function is called when you click "Leave Room" button in the waiting room.
+        function leaveMultiplayerRoom() {
+            if (game.multiplayer.connection) { // Check if there's an active multiplayer connection ('game.multiplayer.connection' is not 'null').
+                game.multiplayer.connection.close(); // If there's a connection, close it. 'connection.close()' closes the WebSocket connection to the server.
+            }
+            document.getElementById('createJoinOptions').classList.remove('hidden'); // Show the "Create Room" and "Join Room" options again.
+            document.getElementById('waitingRoom').classList.add('hidden');      // Hide the waiting room section.
+            document.getElementById('waitingPlayers').innerHTML = '';         // Clear the list of waiting players in the waiting room. 'innerHTML = '' ' sets the content inside the 'waitingPlayers' div to an empty string, effectively removing all the player names.
+            game.multiplayer.roomCode = null;      // Reset 'game.multiplayer.roomCode' to 'null'.
+            game.multiplayer.isHost = false;        // Reset 'game.multiplayer.isHost' to 'false'.
+            game.multiplayer.players = {};          // Reset 'game.multiplayer.players' object to empty.
+            game.multiplayer.playerCount = 0;      // Reset 'game.multiplayer.playerCount' to 0.
+            game.serverStatusElement.classList.add('hidden'); // Hide the server status area.
+        }
+
+        // 'startMultiplayerGame' function is called when the host clicks "Start Game" button in the waiting room.
+        function startMultiplayerGame() {
+            if (!game.multiplayer.isHost) return; // Only the host can start the game. '!' is "not", so '!game.multiplayer.isHost' is true if 'isHost' is false. 'return;' stops the function if you are not the host.
+            sendToServer({ // Call 'sendToServer' to send a message to the server.
+                type: 'startGame', // 'type: 'startGame'' tells the server that the host wants to start the game.
+                fieldSize: 'medium' // 'fieldSize: 'medium'' tells the server to use "medium" field size for this game.
+            });
+        }
+
+        // 'connectToServer' function establishes a WebSocket connection to the multiplayer server.
+        function connectToServer(playerName, roomCode) {
+            game.serverStatusElement.classList.remove('hidden'); // Show the server status area.
+            game.statusTextElement.textContent = 'Connecting...'; // Set the status text to "Connecting...".
+            game.multiplayer.connection = new WebSocket(CONFIG.MULTIPLAYER.server); // Create a new WebSocket connection to the server URL from 'CONFIG.MULTIPLAYER.server'. 'new WebSocket(...)' creates a new WebSocket object and initiates the connection.
+
+            // Add event listeners to the WebSocket connection. These are like "when [something happens with the connection]" blocks.
+            game.multiplayer.connection.addEventListener('open', () => { // 'open' event happens when the connection is successfully opened.
+                game.statusTextElement.textContent = 'Connected'; // Set status text to "Connected".
+                sendToServer({ // Call 'sendToServer' to send a message to the server *after* the connection is open.
+                    type: roomCode ? 'joinRoom' : 'createRoom', // 'type' is either 'joinRoom' or 'createRoom' depending on whether 'roomCode' is provided. 'roomCode ? 'joinRoom' : 'createRoom'' is a conditional (ternary) operator - if 'roomCode' is true-like (not null or undefined), use 'joinRoom', otherwise use 'createRoom'.
+                    playerName: playerName, // 'playerName' is sent to the server.
+                    roomCode: roomCode       // 'roomCode' is sent to the server (only if joining a room).
+                });
+            });
+
+            game.multiplayer.connection.addEventListener('message', (event) => { // 'message' event happens when the server sends a message to us. 'event' object contains information about the message.
+                handleServerMessage(JSON.parse(event.data)); // Call 'handleServerMessage' function to process the message from the server. 'event.data' is the message data (usually text). 'JSON.parse(event.data)' converts the text (which is in JSON format) into a JavaScript object that we can work with. JSON is a way to format data for sending over the internet.
+            });
+
+            game.multiplayer.connection.addEventListener('close', () => { // 'close' event happens when the connection is closed (either by us or the server).
+                game.statusTextElement.textContent = 'Disconnected'; // Set status text to "Disconnected".
+                if (game.isRunning && game.gameMode === 'multiplayer') { // If the game is running and in multiplayer mode when disconnected...
+                    setTimeout(() => { // ...wait for a bit ('CONFIG.MULTIPLAYER.reconnectDelay' milliseconds)... 'setTimeout(function, delay)' runs a function after a delay.
+                        connectToServer(playerName, game.multiplayer.roomCode); // ...and then try to reconnect to the server automatically, using the same player name and room code (if we were in a room).
+                    }, CONFIG.MULTIPLAYER.reconnectDelay);
+                }
+            });
+
+            game.multiplayer.connection.addEventListener('error', (error) => { // 'error' event happens if there's an error with the connection.
+                console.error('WebSocket error:', error); // Log the error to the browser's console (for developers to see). 'console.error()' is for showing error messages in the console.
+                game.statusTextElement.textContent = 'Connection Error'; // Set status text to "Connection Error".
+            });
+        }
+
+        // 'handleServerMessage' function processes messages received from the server.
+        function handleServerMessage(message) {
+            switch (message.type) { // 'switch' statement checks the 'type' of the message received from the server and does different things based on the type. 'message.type' is like checking which kind of message it is.
+                case 'roomCreated': // If the message type is 'roomCreated'...
+                    game.multiplayer.roomCode = message.roomCode; // Get the room code from the message and store it in 'game.multiplayer.roomCode'.
+                    game.roomCodeElement.textContent = message.roomCode; // Display the room code on the webpage in the 'roomCodeElement'.
+                    document.getElementById('shareRoomCode').textContent = message.roomCode; // Display the room code in the waiting room's share code area.
+                    game.roomInfoElement.classList.remove('hidden'); // Show the room info area.
+                    game.statusTextElement.textContent = 'Room Created'; // Set status text to "Room Created".
+                    break; // 'break;' stops the 'switch' statement from going to the next 'case'.
+                case 'roomJoined':  // If the message type is 'roomJoined'...
+                    game.multiplayer.roomCode = message.roomCode; // Get and store the room code.
+                    game.roomCodeElement.textContent = message.roomCode; // Display the room code.
+                    document.getElementById('shareRoomCode').textContent = message.roomCode; // Display in share area.
+                    game.roomInfoElement.classList.remove('hidden'); // Show room info.
+                    game.statusTextElement.textContent = 'Room Joined'; // Set status text.
+                    break;
+                case 'roomError': // If the message type is 'roomError' (something went wrong joining or creating room)...
+                    alert(message.error); // Show an alert box with the error message from the server.
+                    leaveMultiplayerRoom(); // Call 'leaveMultiplayerRoom' to go back to the main menu.
+                    break;
+                case 'playerList': // If the message type is 'playerList' (server sent a list of players in the room)...
+                    updateWaitingPlayersList(message.players); // Call 'updateWaitingPlayersList' function to update the player list display in the waiting room, using the player list from the message.
+                    break;
+                case 'gameStarting': // If the message type is 'gameStarting' (server is starting the game)...
+                    startMultiplayerGameClient(message); // Call 'startMultiplayerGameClient' to start the game on our side, using game data from the message.
+                    break;
+                case 'gameState':  // If the message type is 'gameState' (server sent updates about the game state)...
+                    updateMultiplayerGameState(message); // Call 'updateMultiplayerGameState' to update the game state (player positions, scores, etc.) based on the message.
+                    break;
+                case 'foodEaten':  // If the message type is 'foodEaten' (a player ate food)...
+                    handleFoodEaten(message); // Call 'handleFoodEaten' to update food and player score based on the message.
+                    break;
+                case 'playerDied': // If the message type is 'playerDied' (a player died)...
+                    handlePlayerDied(message); // Call 'handlePlayerDied' to handle player death (game over, etc.) based on the message.
+                    break;
+            }
+        }
+
+        // 'updateWaitingPlayersList' function updates the display of players in the waiting room.
+        function updateWaitingPlayersList(players) {
+            const list = document.getElementById('waitingPlayers'); // Get the HTML element where we want to display the player list.
+            list.innerHTML = ''; // Clear the current list of players by setting 'innerHTML' to an empty string.
+            game.multiplayer.playerCount = players.length; // Update 'game.multiplayer.playerCount' with the number of players in the list.
+            document.querySelector('#playersList div').textContent = `Players (${players.length}):`; // Update the "Players (number):" text in the waiting room to show the current player count. 'document.querySelector('#playersList div')' finds the first <div> element inside the element with id "playersList".
+            players.forEach(player => { // Loop through each player in the 'players' array (the list of players from the server).
+                const playerItem = document.createElement('div'); // Create a new <div> element for each player name. 'document.createElement('div')' creates a new HTML <div> element in memory (not yet on the page).
+                playerItem.textContent = player.name; // Set the text content of the new <div> to the player's name.
+                if (player.isHost) { // Check if this player is the host.
+                    playerItem.textContent += ' (Host)'; // If host, add "(Host)" to their name in the list. '+= ' means "append to".
+                    playerItem.style.fontWeight = 'bold'; // Make the host's name bold in the list. 'playerItem.style.fontWeight = 'bold'' sets the CSS 'font-weight' property of the player item.
+                }
+                list.appendChild(playerItem); // Add the new player <div> to the 'waitingPlayers' list on the webpage. 'list.appendChild(playerItem)' adds the 'playerItem' <div> as a child of the 'list' <div>, making it appear in the waiting room.
+            });
+        }
+
+        // 'startMultiplayerGameClient' function starts the game on our side in multiplayer mode, after receiving 'gameStarting' message from server.
+        function startMultiplayerGameClient(message) {
+            game.menuElement.classList.add('hidden'); // Hide the menu.
+            game.gameMode = 'multiplayer';          // Set game mode to 'multiplayer'.
+            game.fieldWidth = message.fieldWidth;     // Get field width from the message and set 'game.fieldWidth'.
+            game.fieldHeight = message.fieldHeight;   // Get field height from the message and set 'game.fieldHeight'.
+            game.isRunning = true;                // Start the game loop.
+            game.lastTime = performance.now();       // Initialize 'game.lastTime'.
+            game.startTime = performance.now();       // Record game start time.
+            game.playerIndex = message.yourIndex;    // Get *your* player index from the message (server tells us which player number we are) and set 'game.playerIndex'.
+            game.players = message.players;       // Get the initial list of players from the message and set 'game.players'.
+            game.foods = message.foods;           // Get the initial list of food from the message and set 'game.foods'.
+            game.statusTextElement.textContent = 'Multiplayer Game'; // Set status text to "Multiplayer Game".
+        }
+
+        // 'updateMultiplayerGameState' function updates the game state in multiplayer, based on 'gameState' messages from server.
+        function updateMultiplayerGameState(message) {
+            for (let i = 0; i < message.players.length; i++) { // Loop through each player in the 'players' array from the server message.
+                const serverPlayer = message.players[i]; // Get the player data from the server message for player at index 'i'.
+                if (i === game.playerIndex) continue; // 'continue;' means "skip to the next iteration of the loop". If 'i' is our player index, we skip because *our* player is updated locally by our own input, not from server updates.
+                if (game.players[i]) { // Check if we already have a player object at index 'i' in our 'game.players' array. It's possible that players join/leave, so we need to make sure the player exists.
+                    game.players[i].segments = serverPlayer.segments;         // Update the segments of our player object with the segments from the server player data.
+                    game.players[i].direction = serverPlayer.direction;       // Update direction.
+                    game.players[i].targetDirection = serverPlayer.targetDirection; // Update target direction.
+                    game.players[i].score = serverPlayer.score;             // Update score.
+                }
+            }
+        }
+
+        // 'handleFoodEaten' function updates the game when a player eats food in multiplayer, based on 'foodEaten' messages from server.
+        function handleFoodEaten(message) {
+            for (let i = 0; i < game.foods.length; i++) { // Loop through our current 'game.foods' array.
+                if (game.foods[i].id === message.foodId) { // Check if the id of the food in our list matches the 'foodId' from the server message (the id of the food that was eaten).
+                    game.foods.splice(i, 1); // If found, remove the food from our 'game.foods' array. 'splice(index, count)' removes 'count' elements starting from 'index'.
+                    break; // 'break;' stops the loop once the food is found and removed.
+                }
+            }
+            game.foods.push(message.newFood); // Add the 'newFood' from the server message (the food that respawned) to our 'game.foods' array.
+            if (game.players[message.playerIndex]) { // Check if the player who ate the food (from 'message.playerIndex') exists in our 'game.players' array.
+                game.players[message.playerIndex].score = message.newScore; // Update the score of that player with the 'newScore' from the server message.
+            }
+        }
+
+        // 'handlePlayerDied' function handles player death in multiplayer, based on 'playerDied' messages from server.
+        function handlePlayerDied(message) {
+            alert(`Player ${game.players[message.playerIndex].name} died!`); // Show an alert message saying which player died.
+            if (message.playerIndex === game.playerIndex) { // Check if *we* are the player who died (our index matches 'message.playerIndex').
+                leaveMultiplayerRoom(); // If we died, leave the multiplayer room.
+                game.isRunning = false; // Stop the game loop.
+                game.menuElement.classList.remove('hidden'); // Show the main menu again.
+            }
+        }
+
+        // 'sendToServer' function sends a message to the multiplayer server.
+        function sendToServer(data) {
+            if (game.multiplayer.connection && // Check if there's a multiplayer connection AND...
+                game.multiplayer.connection.readyState === WebSocket.OPEN) { // ...if the connection is currently open (ready to send messages). 'readyState === WebSocket.OPEN' checks if the connection is in the "open" state.
+                game.multiplayer.connection.send(JSON.stringify(data)); // If both conditions are true, send the 'data' to the server. 'JSON.stringify(data)' converts the JavaScript object 'data' into a JSON string (text format) that can be sent over the WebSocket.
+            }
+        }
+
+        // 'sendPlayerUpdate' function sends player's game state updates to the server in multiplayer mode.
+        function sendPlayerUpdate() {
+            if (game.gameMode !== 'multiplayer' || game.playerIndex >= game.players.length) return; // Only send updates in multiplayer and if we have a valid player index.
+            const player = game.players[game.playerIndex]; // Get *our* player object from the 'game.players' array.
+            const now = performance.now(); // Get current time.
+            if (now - game.multiplayer.lastUpdate < CONFIG.MULTIPLAYER.updateInterval) return; // Check if it's time to send an update yet. We only send updates at intervals specified by 'CONFIG.MULTIPLAYER.updateInterval' to avoid sending too many updates too quickly.
+            game.multiplayer.lastUpdate = now; // Update 'game.multiplayer.lastUpdate' to the current time.
+            sendToServer({ // Call 'sendToServer' to send a message to the server.
+                type: 'playerUpdate', // 'type: 'playerUpdate'' tells the server it's a player update message.
+                index: game.playerIndex, // 'index' is *our* player index.
+                segments: player.segments, // 'segments' is the current segments of *our* snake.
+                direction: player.direction, // 'direction' is *our* snake's current direction.
+                targetDirection: player.targetDirection, // 'targetDirection' is *our* snake's target direction.
+                score: player.score        // 'score' is *our* current score.
+            });
+        }
+
+        // 'handlePointer' function is called when the mouse moves or touch happens on the canvas. It updates 'game.pointerX' and 'game.pointerY' with the mouse/touch position in game world coordinates.
+        function handlePointer(e) {
+            e.preventDefault(); // 'e.preventDefault()' prevents the default browser behavior for touch events (like scrolling or zooming), which we don't want in a game.
+            let clientX, clientY; // Declare variables to store the mouse/touch x and y coordinates.
+            if (e.type === 'touchmove') { // Check if the event type is 'touchmove' (touch event).
+                clientX = e.touches[0].clientX; // For touch events, get the x-coordinate from the first touch point in 'e.touches[0]'. 'clientX' is the x-coordinate relative to the browser window.
+                clientY = e.touches[0].clientY; // Get the y-coordinate similarly.
+            } else { // If it's not a touch event (it's a mouse event)...
+                clientX = e.clientX; // Get the x-coordinate directly from the mouse event 'e'. 'clientX' is mouse x-coordinate relative to the browser window.
+                clientY = e.clientY; // Get the y-coordinate.
+            }
+            const rect = game.canvas.getBoundingClientRect(); // 'game.canvas.getBoundingClientRect()' gets the size and position of the canvas element on the webpage, relative to the browser window. We need this to convert mouse/touch coordinates (which are relative to the window) to coordinates relative to the canvas and then to game world coordinates.
+            game.pointerX = (clientX - rect.left) / game.camera.zoom + game.camera.x - game.width / (2 * game.camera.zoom); // Calculate 'game.pointerX' (x-coordinate in game world).
+            game.pointerY = (clientY - rect.top) / game.camera.zoom + game.camera.y - game.height / (2 * game.camera.zoom); // Calculate 'game.pointerY' (y-coordinate in game world).
+
+            // Breakdown of the coordinate conversion:
+            // 1. '(clientX - rect.left)' and '(clientY - rect.top)': Convert mouse/touch coordinates from being relative to the *browser window* to being relative to the *top-left corner of the canvas*. 'rect.left' and 'rect.top' are the coordinates of the top-left corner of the canvas relative to the window.
+            // 2. '/ game.camera.zoom':  Scale the coordinates by the camera zoom level. When the camera is zoomed in, 1 pixel on the canvas represents a smaller distance in the game world, so we need to divide by the zoom factor.
+            // 3. '+ game.camera.x' and '+ game.camera.y':  Translate (shift) the coordinates by the camera position. 'game.camera.x' and 'game.camera.y' are the camera's position in the game world. We add these to get the world coordinates.
+            // 4. '- game.width / (2 * game.camera.zoom)' and '- game.height / (2 * game.camera.zoom)':  Center the game view around the camera position. We subtract half of the canvas width and height (scaled by zoom) to make the camera position be the *center* of the view, not the top-left corner.
+        }
+
+        // 'gameLoop' function is the main game loop. It's called repeatedly by 'requestAnimationFrame' to update the game and redraw it.
+        function gameLoop(timestamp) {
+            const deltaTime = (timestamp - game.lastTime) / 1000; // Calculate 'deltaTime' (time passed since the last frame) in seconds. 'timestamp' is the current time given by 'requestAnimationFrame' in milliseconds. We divide by 1000 to convert to seconds.
+            game.lastTime = timestamp; // Update 'game.lastTime' to the current 'timestamp' for the next frame.
+
+            if (game.isRunning) { // Check if the game is currently running ('game.isRunning' is true).
+                update(deltaTime); // Call 'update' function to update game logic (player movement, AI, collisions, etc.), passing 'deltaTime' as argument.
+                if (game.gameMode === 'multiplayer') { // If in multiplayer mode...
+                    sendPlayerUpdate(); // ...call 'sendPlayerUpdate' to send our player's updates to the server.
+                }
+            }
+
+            render(); // Call 'render' function to redraw the game on the canvas.
+            requestAnimationFrame(gameLoop); // Request the next animation frame. This calls 'gameLoop' function again when the browser is ready to draw the next frame, creating a loop and animation.
+        }
+
+        // 'update' function updates all game logic (player movement, camera, collisions, scoreboard).
+        function update(deltaTime) {
+            const cappedDelta = Math.min(deltaTime, 0.05); // 'cappedDelta' is 'deltaTime' but capped at a maximum value of 0.05 seconds. This is to prevent problems if the game loop runs very slowly for some reason (e.g., browser is busy).  Capping 'deltaTime' helps to keep game logic consistent even if frame rate drops.
+            updatePlayers(cappedDelta); // Call 'updatePlayers' to update player snake positions and movement, passing 'cappedDelta'.
+            updateCamera(cappedDelta); // Call 'updateCamera' to update the game camera position and zoom, passing 'cappedDelta'.
+            // Only check collisions after 1 second to give initial immunity time
+            if (performance.now() - game.startTime > 1000) { // Check if 1 second (1000 milliseconds) has passed since the game started.
+                checkCollisions(); // If yes, call 'checkCollisions' to check for collisions between snakes and food, and between snakes themselves.
+            }
+            updateScoreboard(); // Call 'updateScoreboard' to update the scoreboard display.
+        }
+
+        // 'updatePlayers' function updates the position and direction of all player snakes.
+        function updatePlayers(deltaTime) {
+            for (let i = 0; i < game.players.length; i++) { // Loop through each player in the 'game.players' array.
+                const player = game.players[i]; // Get the player object at index 'i'.
+                if (game.gameMode === 'multiplayer' && i !== game.playerIndex) continue; // In multiplayer, only update *our* player locally (index 'game.playerIndex'). Skip updating other players here - their positions are updated based on server messages in 'updateMultiplayerGameState'.
+
+                if (i === game.playerIndex && !player.isAI) { // If it's *our* player (index 'game.playerIndex') and not an AI player (it's a human player)...
+                    const head = player.segments[0]; // Get the head segment of the snake.
+                    player.targetDirection = Math.atan2(game.pointerY - head.y, game.pointerX - head.x); // Calculate the 'targetDirection' for the snake to point towards the mouse/touch position ('game.pointerX', 'game.pointerY'). 'Math.atan2(dy, dx)' calculates the angle (in radians) between a point (head) and another point (pointer) in the game world.
+                } else if (player.isAI) { // If it's an AI player...
+                    updateAI(player, deltaTime); // ...call 'updateAI' function to update the AI snake's target direction and behavior.
+                }
+
+                const angleDiff = angleDifference(player.direction, player.targetDirection); // Calculate the difference between the snake's current 'direction' and its 'targetDirection'. 'angleDifference' function (explained later) calculates the shortest angle difference, handling wrapping around 360 degrees.
+                player.direction += angleDiff * player.turnSpeed; // Adjust the snake's 'direction' towards the 'targetDirection' by a small amount ('angleDiff * player.turnSpeed'). 'turnSpeed' controls how quickly the snake turns.
+
+                const head = player.segments[0]; // Get the head segment again (it might have changed in AI update).
+                const newHead = { // Create a new head segment object for the snake's next position.
+                    x: head.x + Math.cos(player.direction) * player.speed * deltaTime, // Calculate new x-coordinate of the head based on current head position, snake's 'direction', 'speed', and 'deltaTime'. 'Math.cos(direction)' and 'Math.sin(direction)' are used to move in the chosen direction.
+                    y: head.y + Math.sin(player.direction) * player.speed * deltaTime  // Calculate new y-coordinate.
+                };
+
+                if (newHead.x < 0) newHead.x = game.fieldWidth;     // Wrap around the field horizontally: if the new head x-coordinate goes off the left edge (less than 0), set it to the right edge ('game.fieldWidth').
+                if (newHead.x > game.fieldWidth) newHead.x = 0;      // Wrap around horizontally from the right edge.
+                if (newHead.y < 0) newHead.y = game.fieldHeight;    // Wrap around vertically from the top edge.
+                if (newHead.y > game.fieldHeight) newHead.y = 0;     // Wrap around vertically from the bottom edge.
+
+                player.segments.unshift(newHead); // Add the 'newHead' segment to the *beginning* of the 'segments' array. 'unshift()' adds an element to the front of an array, shifting existing elements to higher indices. This makes the new head the first segment of the snake.
+
+                if (player.segments.length > CONFIG.SNAKE.initialLength + player.score * CONFIG.SNAKE.growthPerFood) { // Check if the snake has grown too long (longer than its initial length plus growth based on score).
+                    player.segments.pop(); // If too long, remove the *last* segment from the 'segments' array. 'pop()' removes the last element from an array. This makes the snake move forward and grow when it eats food, but keeps its length under control.
+                }
+            }
+        }
+
+        // 'updateAI' function updates the target direction and behavior of an AI player snake.
+        function updateAI(player, deltaTime) {
+            player.aiUpdateTime += deltaTime * 1000; // Increase 'player.aiUpdateTime' by the 'deltaTime' (converted to milliseconds). We use 'aiUpdateTime' to control how often AI makes decisions.
+            if (player.aiUpdateTime >= CONFIG.SNAKE.aiUpdateInterval) { // Check if enough time has passed ('aiUpdateTime' is greater than or equal to 'CONFIG.SNAKE.aiUpdateInterval').
+                player.aiUpdateTime = 0; // Reset 'aiUpdateTime' to 0 after updating AI behavior.
+                const personality = player.aiPersonality || { targetPreference: 'food' }; // Get the AI player's 'personality'. If 'player.aiPersonality' is not set (e.g., for human players), use a default personality that prefers food.
+                if (personality.targetPreference === 'wander' || // Check if the personality prefers to wander OR...
+                    (personality.targetPreference === 'mixed' && Math.random() < CONFIG.SNAKE.aiWanderFactor)) { // ...if it's a "mixed" personality and a random number is less than 'aiWanderFactor' (chance to wander).
+                    player.aiTarget = { // If wandering, set a random 'aiTarget' (where the AI snake will try to go).
+                        x: Math.random() * game.fieldWidth,  // Random x-coordinate.
+                        y: Math.random() * game.fieldHeight // Random y-coordinate.
+                    };
+                } else { // If not wandering, the AI will try to chase food.
+                    let nearestFood = null; // Initialize 'nearestFood' to 'null' (no food found yet).
+                    let minDist = Number.MAX_VALUE; // Initialize 'minDist' (minimum distance to food) to a very large number. 'Number.MAX_VALUE' is the largest number JavaScript can represent.
+                    const head = player.segments[0]; // Get the head segment of the AI snake.
+                    for (const food of game.foods) { // Loop through each food piece in 'game.foods' array.
+                        const dx = food.x - head.x; // Calculate x-distance between the food and the snake's head.
+                        const dy = food.y - head.y; // Calculate y-distance.
+                        const dist = Math.sqrt(dx * dx + dy * dy); // Calculate the straight-line distance using the Pythagorean theorem (square root of sum of squares of dx and dy). 'Math.sqrt()' is square root function.
+                        if (dist < minDist) { // If this food is closer than the current 'minDist'...
+                            minDist = dist;       // Update 'minDist' to this new shorter distance.
+                            nearestFood = food; // Update 'nearestFood' to this food piece (because it's the closest so far).
+                        }
+                    }
+                    if (nearestFood) { // If we found a nearest food piece (meaning 'nearestFood' is not 'null')...
+                        player.aiTarget = { x: nearestFood.x, y: nearestFood.y }; // ...set the 'aiTarget' to the position of the nearest food, so the AI will try to move towards it.
+                    }
+                    addObstacleAvoidance(player); // Call 'addObstacleAvoidance' function to add obstacle avoidance behavior to the AI.
+                }
+            }
+            if (player.aiTarget) { // If the AI has a 'aiTarget' (either to wander or chase food)...
+                const head = player.segments[0]; // Get the head segment again.
+                player.targetDirection = Math.atan2(player.aiTarget.y - head.y, player.aiTarget.x - head.x); // Calculate the 'targetDirection' to point towards the 'aiTarget'. Same 'Math.atan2' calculation as for human player control.
+            }
+        }
+
+        // 'addObstacleAvoidance' function makes AI snakes try to avoid running into other snakes.
+        function addObstacleAvoidance(player) {
+            const head = player.segments[0]; // Get the head segment of the AI snake.
+            const lookAhead = 100; // 'lookAhead' distance - how far ahead the AI snake will look for obstacles (in game units).
+            const lookX = head.x + Math.cos(player.direction) * lookAhead; // Calculate a point 'lookAhead' distance in front of the snake in its current direction.
+            const lookY = head.y + Math.sin(player.direction) * lookAhead;
+            let obstacleDetected = false; // Initialize 'obstacleDetected' to 'false' (no obstacle found yet).
+            for (const otherPlayer of game.players) { // Loop through all other players in the game.
+                if (otherPlayer === player) continue; // 'continue;' Skip if 'otherPlayer' is the same as the current 'player' (don't check for collision with itself).
+                for (const segment of otherPlayer.segments) { // Loop through each segment of the 'otherPlayer' snake.
+                    const dx = segment.x - lookX; // Calculate x-distance between the segment and the 'lookAhead' point.
+                    const dy = segment.y - lookY; // Calculate y-distance.
+                    const distance = Math.sqrt(dx * dx + dy * dy); // Calculate straight-line distance.
+                    if (distance < lookAhead * 0.5) { // If the distance is less than half of 'lookAhead' (meaning an obstacle is relatively close to the 'lookAhead' point)...
+                        obstacleDetected = true; // ...set 'obstacleDetected' to 'true'.
+                        break; // 'break;' Stop checking segments of this 'otherPlayer' because we already found an obstacle.
+                    }
+                }
+                if (obstacleDetected) break; // 'break;' Stop checking other players because we already found an obstacle.
+            }
+            if (obstacleDetected) { // If an obstacle was detected...
+                const avoidAngle = player.direction + (Math.random() > 0.5 ? Math.PI/2 : -Math.PI/2); // Calculate an 'avoidAngle' - either 90 degrees to the left or 90 degrees to the right of the current direction (randomly chosen). 'Math.PI/2' is 90 degrees in radians.
+                const avoidDistance = lookAhead * 2; // 'avoidDistance' - how far to move in the 'avoidAngle' direction.
+                player.aiTarget = { // Set a new 'aiTarget' to move in the 'avoidAngle' direction to avoid the obstacle.
+                    x: head.x + Math.cos(avoidAngle) * avoidDistance, // Calculate x-coordinate based on current head position, 'avoidAngle', and 'avoidDistance'.
+                    y: head.y + Math.sin(avoidAngle) * avoidDistance  // Calculate y-coordinate.
+                };
+            }
+        }
+
+        // 'updateCamera' function updates the game camera's position and zoom to follow the player.
+        function updateCamera(deltaTime) {
+            if (game.players.length > game.playerIndex) { // Make sure there's a player at 'game.playerIndex' (our player exists).
+                const player = game.players[game.playerIndex]; // Get *our* player object.
+                const head = player.segments[0]; // Get the head segment of our snake.
+                game.camera.x += (head.x - game.camera.x) * CONFIG.CAMERA.smoothing; // Update camera x-position to smoothly follow the player's head. '(head.x - game.camera.x) * CONFIG.CAMERA.smoothing' calculates how much to move the camera in the x-direction this frame. 'CONFIG.CAMERA.smoothing' controls how smooth the camera movement is (smaller value = less smooth).
+                game.camera.y += (head.y - game.camera.y) * CONFIG.CAMERA.smoothing; // Update camera y-position similarly.
+                const targetZoom = CONFIG.CAMERA.zoomFactor * // Calculate 'targetZoom' - the zoom level the camera *should* be at.
+                    Math.max(CONFIG.CAMERA.minZoom, // Ensure 'targetZoom' is not less than 'CONFIG.CAMERA.minZoom' (minimum zoom).
+                        Math.min(CONFIG.CAMERA.maxZoom, // Ensure 'targetZoom' is not greater than 'CONFIG.CAMERA.maxZoom' (maximum zoom).
+                            800 / Math.max(100, player.segments.length) // Calculate a base zoom level based on the snake's length. Longer snake = more zoomed out. 'Math.max(100, player.segments.length)' ensures we don't divide by a very small or zero snake length. '800 / ...' makes the zoom level decrease as snake length increases.
+                        )
+                    );
+                game.camera.zoom += (targetZoom - game.camera.zoom) * CONFIG.CAMERA.smoothing; // Update camera zoom to smoothly approach the 'targetZoom'. Similar smoothing calculation as for camera position.
+            }
+        }
+
+        // 'checkCollisions' function checks for collisions between snakes and food, and between snakes themselves.
+        function checkCollisions() {
+            if (game.gameMode === 'multiplayer') return; // In multiplayer, collisions are handled by the server, so we don't need to check them here on the client side.
+
+            for (let i = 0; i < game.players.length; i++) { // Loop through each player in 'game.players' array.
+                const player = game.players[i]; // Get the player object.
+                const head = player.segments[0]; // Get the head segment.
+
+                for (let j = game.foods.length - 1; j >= 0; j--) { // Loop through food pieces in reverse order (from last to first) to avoid issues if we remove food from the array while looping.
+                    const food = game.foods[j]; // Get the food object at index 'j'.
+                    const dx = head.x - food.x; // Calculate x-distance between snake head and food.
+                    const dy = head.y - food.y; // Calculate y-distance.
+                    const distance = Math.sqrt(dx * dx + dy * dy); // Calculate straight-line distance.
+
+                    if (distance < CONFIG.SNAKE.segmentSize / 2 + food.size) { // Check if the distance is less than the sum of snake head radius and food radius (collision detected). 'CONFIG.SNAKE.segmentSize / 2' is approximately snake head radius, 'food.size' is food radius.
+                        player.score += food.value; // Increase the player's score by the 'value' of the food.
+                        game.foods.splice(j, 1); // Remove the eaten food from the 'game.foods' array.
+                        setTimeout(addFood, CONFIG.FOOD.respawnDelay); // Call 'addFood' function after a delay ('CONFIG.FOOD.respawnDelay') to respawn a new food piece. 'setTimeout(function, delay)' runs a function after a delay in milliseconds.
+                        if (!player.isAI && i === game.playerIndex) { // If the player who ate the food is *our* player (not AI)...
+                            player.immuneUntil = Math.max(player.immuneUntil || 0, performance.now() + 3000); // Make the player immune to collisions for 3 seconds after eating food (3000 milliseconds). 'Math.max(player.immuneUntil || 0, ...)' ensures that immunity is extended if the player eats food while already immune. 'player.immuneUntil || 0' means if 'player.immuneUntil' is 'null' or 'undefined', use 0 as the starting time for immunity.
+                        }
+                    }
+                }
+            }
+
+            for (let i = 0; i < game.players.length; i++) { // Loop through players again to check for snake-snake collisions.
+                checkSnakeCollisions(game.players[i], i); // Call 'checkSnakeCollisions' function to check for collisions for each player, passing the player object and its index.
+            }
+        }
+
+        // 'checkSnakeCollisions' function checks for collisions between a given player snake and other snakes (including itself).
+        function checkSnakeCollisions(player, playerIndex) {
+            const currentTime = performance.now(); // Get current time.
+            const isImmune = player.immuneUntil && currentTime < player.immuneUntil; // Check if the player is currently immune to collisions. 'player.immuneUntil && currentTime < player.immuneUntil' is true if 'player.immuneUntil' is set (not 'null' or 'undefined') *and* the current time is still before the immunity end time.
+
+            if (isImmune) { // If the player is immune...
+                console.log(`${player.name} immune until ${Math.round((player.immuneUntil - currentTime) / 1000)}s remaining`); // Log a message to the console (for developers) about immunity status. 'Math.round((player.immuneUntil - currentTime) / 1000)' calculates remaining immunity time in seconds and rounds it to the nearest whole number.
+                return; // 'return;' Stop checking for collisions for this player because they are immune.
+            }
+
+            const head = player.segments[0]; // Get the head segment of the player snake.
+            const headRadius = CONFIG.SNAKE.segmentSize / 2; // Calculate head radius.
+            // Use a smaller multiplier (0.4) so collisionDistance = 10 + (10 * 0.4) = 14 pixels
+            const collisionDistance = headRadius + (CONFIG.SNAKE.segmentSize / 2 * 0.4); // Calculate 'collisionDistance' - the minimum distance between snake heads or head and body segments for a collision to be detected. We make it slightly larger than just the head radius to make collisions a bit more generous.
+
+            for (let otherPlayerIndex = 0; otherPlayerIndex < game.players.length; otherPlayerIndex++) { // Loop through all other players.
+                const otherPlayer = game.players[otherPlayerIndex]; // Get the 'otherPlayer' object.
+
+                // For self-collision, skip more segments (e.g., the first 10)
+                for (let segmentIndex = 0; segmentIndex < otherPlayer.segments.length; segmentIndex++) { // Loop through each segment of the 'otherPlayer' snake.
+                    if (otherPlayerIndex === playerIndex && segmentIndex < 10) continue; // 'continue;' If checking for self-collision (same player index) and segment index is less than 10 (first 10 segments of its own body), skip collision check. This prevents instant self-collision when snake turns around. We only check for collision with its own tail segments.
+
+                    const segment = otherPlayer.segments[segmentIndex]; // Get the segment object.
+                    const dx = head.x - segment.x; // Calculate x-distance between player's head and the segment.
+                    const dy = head.y - segment.y; // Calculate y-distance.
+                    const distance = Math.sqrt(dx * dx + dy * dy); // Calculate straight-line distance.
+
+                    if (distance < collisionDistance) { // Check if distance is less than 'collisionDistance' (collision detected).
+                        console.log(`${player.name} collided with ${otherPlayer.name} at segment ${segmentIndex}`); // Log a message to console about collision.
+                        if (game.gameMode === 'singleplayer' && !player.isAI) { // If in single player mode and the player who collided is *our* player (not AI)...
+                            alert(`Game Over! ${player.name}'s Score: ${player.score}`); // Show "Game Over" alert box with player's score.
+                            game.isRunning = false; // Stop the game loop.
+                            game.menuElement.classList.remove('hidden'); // Show the main menu again.
+                            game.serverStatusElement.classList.add('hidden'); // Hide the server status area.
+                            return; // 'return;' Stop the function, game is over.
+                        }
+                    }
+                }
+            }
+        }
+
+        // 'updateScoreboard' function updates the scoreboard display on the webpage.
+        function updateScoreboard() {
+            const sortedPlayers = [...game.players].sort((a, b) => b.score - a.score); // Create a *copy* of the 'game.players' array using spread syntax '[...game.players]', then sort it in descending order of score (highest score first). 'sort((a, b) => b.score - a.score)' sorts an array in descending order based on the 'score' property of objects in the array.
+            let html = '<h3>Scoreboard</h3>'; // Start building the HTML string for the scoreboard. '<h3>Scoreboard</h3>' is the scoreboard title.
+            for (let i = 0; i < sortedPlayers.length; i++) { // Loop through each player in the sorted 'sortedPlayers' array.
+                const player = sortedPlayers[i]; // Get the player object.
+                const isHuman = !player.isAI && game.players.indexOf(player) === game.playerIndex; // Check if this player is the human player (not AI and its index in the original 'game.players' array is 'game.playerIndex'). 'game.players.indexOf(player)' finds the index of the 'player' object in the original 'game.players' array.
+                html += `<div style="margin: 5px 0; display: flex; align-items: center;">
+                    <div style="width: 15px; height: 15px; background: ${player.color.start}; border-radius: 50%; margin-right: 5px;"></div>
+                    <span style="${isHuman ? 'font-weight: bold;' : ''}">${player.name}: ${player.score}</span>
+                </div>`; // Append HTML for each player to the 'html' string. This creates a <div> for each player's row in the scoreboard, with a colored circle (snake color) and player name and score. `` (backticks) are used for template literals to easily embed variables in strings. '${player.color.start}' and '${player.name}' and '${player.score}' are variables embedded in the HTML string.  'style="${isHuman ? 'font-weight: bold;' : ''}"' makes the human player's name bold in the scoreboard.
+            }
+            game.scoreboardElement.innerHTML = html; // Set the 'innerHTML' of the 'scoreboardElement' to the 'html' string we built. This updates the scoreboard display on the webpage with the new HTML content.
+        }
+
+        // 'render' function redraws the entire game scene on the canvas.
+        function render() {
+            const ctx = game.ctx; // Get the 2D drawing context from 'game.ctx'.
+            ctx.fillStyle = '#111'; // Set the fill color to a very dark gray ('#111') for the background.
+            ctx.fillRect(0, 0, game.width, game.height); // Fill the entire canvas with the background color. 'fillRect(x, y, width, height)' draws a filled rectangle. '(0, 0)' is the top-left corner, 'game.width' and 'game.height' are the width and height of the canvas.
+
+            ctx.save(); // 'ctx.save()' saves the current drawing state (transformation, styles, etc.). We do this before applying camera transformations so we can restore to the original state later.
+            ctx.translate(game.width / 2, game.height / 2); // 'ctx.translate(x, y)' moves the origin (0, 0 point) of the canvas to the center of the canvas. This makes it easier to work with camera transformations around the center.
+            ctx.scale(game.camera.zoom, game.camera.zoom); // 'ctx.scale(scaleX, scaleY)' scales the canvas by 'game.camera.zoom' in both x and y directions. This applies the camera zoom.
+            ctx.translate(-game.camera.x, -game.camera.y); // 'ctx.translate(-x, -y)' moves the origin back by the camera's x and y position. This effectively moves the game world in the opposite direction of the camera, making it appear as if the camera is moving over the game world.
+
+            renderGrid(); // Call 'renderGrid' function to draw the grid lines.
+            renderBorder(); // Call 'renderBorder' to draw the game field border.
+            renderFood();   // Call 'renderFood' to draw the food pieces.
+            renderPlayers(); // Call 'renderPlayers' to draw all player snakes.
+
+            ctx.restore(); // 'ctx.restore()' restores the drawing state to what it was when we called 'ctx.save()'. This undoes the camera transformations (translate and scale) so that the next frame starts with the original drawing state.
+        }
+
+        // 'renderGrid' function draws the grid lines on the game field.
+        function renderGrid() {
+            const ctx = game.ctx; // Get drawing context.
+            const gridSize = game.grid.size; // Get grid size from 'game.grid.size'.
+            ctx.strokeStyle = CONFIG.COLORS.grid; // Set the stroke style (line color) to the grid color from 'CONFIG.COLORS.grid'.
+            ctx.lineWidth = 1; // Set line width to 1 pixel.
+            const startX = Math.floor((game.camera.x - game.width / (2 * game.camera.zoom)) / gridSize) * gridSize; // Calculate the starting x-coordinate for grid lines, based on camera position and zoom, and grid size. 'Math.floor(... / gridSize) * gridSize' rounds down to the nearest multiple of 'gridSize', ensuring grid lines start at grid boundaries. 'game.width / (2 * game.camera.zoom)' is roughly half of the visible width in game world units.
+            const endX = Math.ceil((game.camera.x + game.width / (2 * game.camera.zoom)) / gridSize) * gridSize;   // Calculate the ending x-coordinate similarly, using 'Math.ceil()' to round up.
+            const startY = Math.floor((game.camera.y - game.height / (2 * game.camera.zoom)) / gridSize) * gridSize; // Calculate starting y-coordinate.
+            const endY = Math.ceil((game.camera.y + game.height / (2 * game.camera.zoom)) / gridSize) * gridSize;   // Calculate ending y-coordinate.
+            for (let x = startX; x <= endX; x += gridSize) { // Loop through x-coordinates for vertical grid lines, starting from 'startX', going up to 'endX', in steps of 'gridSize'.
+                if (x < 0 || x > game.fieldWidth) continue; // 'continue;' Skip drawing grid line if it's outside the game field boundaries (x < 0 or x > field width).
+                ctx.beginPath(); // 'ctx.beginPath()' starts a new drawing path.
+                ctx.moveTo(x, 0); // 'ctx.moveTo(x, y)' moves the drawing cursor to position (x, 0) without drawing a line.
+                ctx.lineTo(x, game.fieldHeight); // 'ctx.lineTo(x, y)' draws a line from the current cursor position to position (x, 'game.fieldHeight'). This draws a vertical line.
+                ctx.stroke(); // 'ctx.stroke()' actually draws the path (in this case, the line) using the current stroke style (color, width, etc.).
+            }
+            for (let y = startY; y <= endY; y += gridSize) { // Loop through y-coordinates for horizontal grid lines.
+                if (y < 0 || y > game.fieldHeight) continue; // Skip if outside field boundaries (y < 0 or y > field height).
+                ctx.beginPath(); // Start new path.
+                ctx.moveTo(0, y); // Move cursor to (0, y).
+                ctx.lineTo(game.fieldWidth, y); // Draw horizontal line to ('game.fieldWidth', y).
+                ctx.stroke(); // Draw the line.
+            }
+        }
+
+        // 'renderBorder' function draws the border around the game field.
+        function renderBorder() {
+            const ctx = game.ctx; // Get drawing context.
+            ctx.strokeStyle = CONFIG.COLORS.border; // Set stroke style to border color from 'CONFIG.COLORS.border'.
+            ctx.lineWidth = 3; // Set line width to 3 pixels.
+            ctx.strokeRect(0, 0, game.fieldWidth, game.fieldHeight); // 'ctx.strokeRect(x, y, width, height)' draws a rectangle outline (border). '(0, 0)' is top-left corner, 'game.fieldWidth' and 'game.fieldHeight' are width and height of the rectangle.
+        }
+
+        // 'renderFood' function draws all food pieces on the canvas.
+        function renderFood() {
+            const ctx = game.ctx; // Get drawing context.
+            for (const food of game.foods) { // Loop through each food piece in 'game.foods' array.
+                const gradient = ctx.createRadialGradient( // 'ctx.createRadialGradient(x0, y0, r0, x1, y1, r1)' creates a radial gradient (a gradient that spreads out in a circle).
+                    food.x, food.y, 0,     // (x0, y0, r0) - starting circle center (food position), radius 0 (gradient starts from the center).
+                    food.x, food.y, food.size * 2 // (x1, y1, r1) - ending circle center (same as starting center), radius 'food.size * 2' (gradient expands outwards).
+                );
+                gradient.addColorStop(0, food.glowColor); // 'gradient.addColorStop(offset, color)' adds a color stop to the gradient. 'offset' is a number between 0 and 1 (0 = start, 1 = end of gradient). '0' offset with 'food.glowColor' means the gradient starts with the glow color at the center.
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)'); // '1' offset with 'rgba(0, 0, 0, 0)' means the gradient ends with transparent black at the outer edge. This creates a glow effect that fades out.
+                ctx.beginPath(); // Start new path for the glow.
+                ctx.fillStyle = gradient; // Set fill style to the radial gradient we just created.
+                ctx.arc(food.x, food.y, food.size * 2, 0, Math.PI * 2); // 'ctx.arc(x, y, radius, startAngle, endAngle)' draws a circle arc. '(food.x, food.y)' is the center, 'food.size * 2' is the radius (larger circle for glow), '0' and 'Math.PI * 2' are start and end angles (0 to 360 degrees, full circle).
+                ctx.fill(); // 'ctx.fill()' fills the current path (circle) with the current fill style (gradient).
+                ctx.beginPath(); // Start new path for the food itself (solid color).
+                ctx.fillStyle = food.color; // Set fill style to food's solid color.
+                ctx.arc(food.x, food.y, food.size, 0, Math.PI * 2); // Draw another circle, this time with radius 'food.size' (smaller circle for the solid food color).
+                ctx.fill(); // Fill the food circle.
+            }
+        }
+
+        // 'renderPlayers' function calls functions to render each player snake (body, head, name).
+        function renderPlayers() {
+            const ctx = game.ctx; // Get drawing context.
+            for (const player of game.players) { // Loop through each player in 'game.players' array.
+                renderSnakeBody(ctx, player); // Call 'renderSnakeBody' to draw the snake's body segments.
+                renderSnakeHead(ctx, player); // Call 'renderSnakeHead' to draw the snake's head (eyes).
+                renderPlayerName(ctx, player); // Call 'renderPlayerName' to draw the player's name above its head.
+            }
+        }
+
+        // 'renderSnakeBody' function draws the body segments of a given player snake.
+        function renderSnakeBody(ctx, player) {
+            const segments = player.segments; // Get the snake's segments array.
+            const segmentSize = CONFIG.SNAKE.segmentSize; // Get segment size.
+            for (let i = segments.length - 1; i >= 0; i--) { // Loop through segments in reverse order (from tail to head) to make sure head is drawn on top.
+                const segment = segments[i]; // Get the segment object at index 'i'.
+                const gradientPos = i / segments.length; // Calculate 'gradientPos' - a value between 0 and 1 representing the position of the segment along the snake's body (0 for tail, 1 for head).
+                const color = interpolateColor(player.color.start, player.color.end, gradientPos); // Call 'interpolateColor' function (explained later) to get a color from the gradient, based on 'gradientPos'. This creates a smooth color transition from tail to head.
+                ctx.beginPath(); // Start new path for each segment.
+                ctx.fillStyle = color; // Set fill style to the gradient color.
+                const radius = i === 0 ? segmentSize / 2 : segmentSize / 2 * 0.8; // Calculate segment radius. For the head segment (i === 0), use full 'segmentSize / 2' radius. For body segments, use a slightly smaller radius ('segmentSize / 2 * 0.8') to create a slight gap between segments.
+                ctx.arc(segment.x, segment.y, radius, 0, Math.PI * 2); // Draw a circle arc for the segment.
+                ctx.fill(); // Fill the segment circle.
+
+                if (player.immuneUntil && performance.now() < player.immuneUntil) { // Check if the player is currently immune.
+                    const remainingTime = (player.immuneUntil - performance.now()) / 3000; // Calculate remaining immunity time as a fraction (0 to 1).
+                    ctx.globalAlpha = 0.6 * remainingTime; // Set 'globalAlpha' to make immunity effect semi-transparent, with transparency level depending on remaining time. 'globalAlpha' controls the overall transparency of everything drawn after it.
+                    ctx.beginPath(); // Start new path for immunity effect.
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)'; // Set fill style to slightly transparent white for immunity effect.
+                    ctx.arc(segment.x, segment.y, radius * 1.3, 0, Math.PI * 2); // Draw a slightly larger circle around the segment for immunity effect.
+                    ctx.fill(); // Fill the immunity circle.
+                    ctx.globalAlpha = 1.0; // Reset 'globalAlpha' back to 1.0 (fully opaque) for subsequent drawing.
+                }
+
+                ctx.beginPath(); // Start new path for the highlight on the segment.
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)'; // Set fill style to slightly transparent white for highlight.
+                ctx.arc(segment.x - radius * 0.3, segment.y - radius * 0.3, radius * 0.4, 0, Math.PI * 2); // Draw a small white circle as a highlight, slightly offset from the segment center.
+                ctx.fill(); // Fill the highlight circle.
+            }
+        }
+
+        // 'renderSnakeHead' function draws the head (eyes) of a given player snake.
+        function renderSnakeHead(ctx, player) {
+            const head = player.segments[0]; // Get the head segment.
+            const segmentSize = CONFIG.SNAKE.segmentSize; // Get segment size.
+            const eyeSize = segmentSize * 0.2; // Calculate eye size as 20% of segment size.
+            const eyeOffset = segmentSize * 0.25; // Calculate eye offset from the center of the head as 25% of segment size.
+            const eyeX = Math.cos(player.direction); // Get x-component of the snake's direction (for eye position).
+            const eyeY = Math.sin(player.direction); // Get y-component of direction.
+            const perpX = -eyeY; // Calculate x-component of a vector perpendicular to the direction (for spacing eyes apart).
+            const perpY = eyeX;  // Calculate y-component of perpendicular vector.
+            ctx.beginPath(); // Start path for the first eye.
+            ctx.fillStyle = 'white'; // Set fill style to white for eyes.
+            ctx.arc( // Draw a circle for the eye.
+                head.x + eyeX * eyeOffset + perpX * eyeOffset, // x-coordinate of the eye (head center + direction offset + perpendicular offset).
+                head.y + eyeY * eyeOffset + perpY * eyeOffset, // y-coordinate of the eye.
+                eyeSize, 0, Math.PI * 2 // Radius and angles for a full circle.
+            );
+            ctx.fill(); // Fill the first eye.
+            ctx.beginPath(); // Start path for the second eye.
+            ctx.fillStyle = 'white'; // Set fill style to white.
+            ctx.arc( // Draw a circle for the second eye.
+                head.x + eyeX * eyeOffset - perpX * eyeOffset, // x-coordinate of the second eye (same as first, but perpendicular offset is subtracted to place it on the other side).
+                head.y + eyeY * eyeOffset - perpY * eyeOffset, // y-coordinate of the second eye.
+                eyeSize, 0, Math.PI * 2 // Radius and angles for a full circle.
+            );
+            ctx.fill(); // Fill the second eye.
+            const pupilSize = eyeSize * 0.5; // Calculate pupil size as 50% of eye size.
+            ctx.fillStyle = 'black'; // Set fill style to black for pupils.
+            ctx.beginPath(); // Start path for the first pupil.
+            ctx.arc( // Draw a circle for the pupil.
+                head.x + eyeX * (eyeOffset + pupilSize) + perpX * eyeOffset, // x-coordinate of the first pupil (slightly further in direction than eye center).
+                head.y + eyeY * (eyeOffset + pupilSize) + perpY * eyeOffset, // y-coordinate of the first pupil.
+                pupilSize, 0, Math.PI * 2 // Radius and angles for a full circle.
+            );
+            ctx.fill(); // Fill the first pupil.
+            ctx.beginPath(); // Start path for the second pupil.
+            ctx.arc( // Draw a circle for the second pupil.
+                head.x + eyeX * (eyeOffset + pupilSize) - perpX * eyeOffset, // x-coordinate of the second pupil.
+                head.y + eyeY * (eyeOffset + pupilSize) - perpY * eyeOffset, // y-coordinate of the second pupil.
+                pupilSize, 0, Math.PI * 2 // Radius and angles for a full circle.
+            );
+            ctx.fill(); // Fill the second pupil.
+        }
+
+        // 'renderPlayerName' function draws the player's name above their snake's head.
+        function renderPlayerName(ctx, player) {
+            if (player.segments.length === 0) return; // If player has no segments (snake is dead), don't render name. 'return;' stops the function early.
+            const head = player.segments[0]; // Get the head segment.
+            const nameY = head.y - CONFIG.SNAKE.segmentSize - 15; // Calculate y-coordinate for the name to be positioned above the head.
+            ctx.font = '14px Arial'; // Set font style for player name text.
+            ctx.textAlign = 'center'; // Set text alignment to center, so name is centered horizontally above the head.
+            const textWidth = ctx.measureText(player.name).width; // 'ctx.measureText(text).width' measures the width of the given text in pixels using the current font. We need this to draw a background rectangle behind the name that fits the text width.
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'; // Set fill style to slightly transparent black for the name background.
+            ctx.fillRect(head.x - textWidth/2 - 4, nameY - 12, textWidth + 8, 20); // Draw a filled rectangle as background for the name. '(head.x - textWidth/2 - 4, nameY - 12)' is the top-left corner of the rectangle (centered horizontally above head, and a bit above the 'nameY' position). 'textWidth + 8' is the width of the rectangle (text width + some padding on left and right). '20' is the height of the rectangle.
+            ctx.fillStyle = player.color.start; // Set fill style to the player's start color for the name text itself.
+            ctx.fillText(player.name, head.x, nameY); // 'ctx.fillText(text, x, y)' draws filled text at position (x, y). '(head.x, nameY)' is the position, 'player.name' is the text to draw.
+        }
+
+        // 'angleDifference' function calculates the shortest angle difference between two angles (in radians), handling wrapping around 360 degrees.
+        function angleDifference(a1, a2) {
+            const diff = ((a2 - a1 + Math.PI) % (Math.PI * 2)) - Math.PI; // Calculate the angle difference using modulo and offset to handle wrapping.
+            return diff < -Math.PI ? diff + Math.PI * 2 : diff; // Adjust the difference to be in the range -PI to +PI (shortest difference). If 'diff' is less than -PI (meaning it wrapped around too much in negative direction), add 2*PI to bring it into the correct range.
+        }
+
+        // 'interpolateColor' function blends two colors together based on a 'factor' (0 to 1).
+        function interpolateColor(color1, color2, factor) {
+            const r1 = parseInt(color1.substring(1, 3), 16); // 'color1.substring(1, 3)' extracts the red component (first 2 characters after '#') from the hex color string. 'parseInt(..., 16)' converts the hex string to an integer (base 16).
+            const g1 = parseInt(color1.substring(3, 5), 16); // Extract green component.
+            const b1 = parseInt(color1.substring(5, 7), 16); // Extract blue component.
+            const r2 = parseInt(color2.substring(1, 3), 16); // Extract red component of 'color2'.
+            const g2 = parseInt(color2.substring(3, 5), 16); // Extract green.
+            const b2 = parseInt(color2.substring(5, 7), 16); // Extract blue.
+            const r = Math.round(r1 + factor * (r2 - r1)); // Interpolate the red component: 'r1 + factor * (r2 - r1)' calculates a value between 'r1' and 'r2' based on 'factor'. 'Math.round()' rounds it to the nearest integer.
+            const g = Math.round(g1 + factor * (g2 - g1)); // Interpolate green component.
+            const b = Math.round(b1 + factor * (b2 - b1)); // Interpolate blue component.
+            return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`; // Construct the interpolated hex color string. '(r << 16 | g << 8 | b)' combines the red, green, and blue integer values into a single integer representing the RGB color. 'toString(16)' converts this integer to a hex string (base 16). 'padStart(6, '0')' makes sure the hex string is always 6 characters long (e.g., "00FF00" instead of "FF00"), padding with leading zeros if needed. '#' is added at the beginning to make it a valid hex color code.
+        }
+
+        // 'generateUniqueId' function generates a unique ID string.
+        function generateUniqueId() {
+            return Date.now().toString(36) + Math.random().toString(36).substring(2); // 'Date.now().toString(36)' gets the current timestamp in milliseconds and converts it to a base-36 string (using digits and letters). 'Math.random().toString(36).substring(2)' generates a random base-36 string and removes the first two characters ("0."). Combining them creates a relatively unique ID.
+        }
+
+        window.onload = init; // 'window.onload = init;' means when the whole webpage and all its resources are loaded, run the 'init' function. This starts the game when the page is ready.
+    </script>
+</body>
+</html>
